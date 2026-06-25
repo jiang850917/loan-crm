@@ -648,7 +648,7 @@ let csvState={platform:'Google',rawHeaders:[],rows:[],mappings:{},hasDateCol:tru
 // Fixed platform mappings - no manual selection needed
 const PLATFORM_MAPS={
   Google:{
-    date:null,
+    date:null,           // no date col, auto-extract from report header
     campaign:'廣告活動',
     adGroup:null,
     creative:null,
@@ -658,7 +658,7 @@ const PLATFORM_MAPS={
     platformLead:'轉換',
   },
   Meta:{
-    date:'分析報告開始',
+    date:'分析報告開始',  // always use report start date, NOT 結束時間
     campaign:'行銷活動名稱',
     adGroup:null,
     creative:null,
@@ -674,12 +674,9 @@ function detectMapping(headers){
   const m={};
   Object.keys(map).forEach(field=>{
     if(!map[field]){m[field]='';return;}
-    // exact match first
+    // exact match only - no partial match to avoid wrong column
     const exact=headers.find(h=>h.trim()===map[field]);
-    if(exact){m[field]=exact;return;}
-    // partial match fallback
-    const partial=headers.find(h=>h.toLowerCase().includes(map[field].toLowerCase()));
-    m[field]=partial||'';
+    m[field]=exact||'';
   });
   return m;
 }
@@ -705,6 +702,23 @@ function processCSVFile(file){
     if(text.charCodeAt(0)===0xFEFF)text=text.slice(1);
     const lines=text.split(/\r?\n/).filter(l=>l.trim());
     if(lines.length<2){alert('CSV 內容不足，請確認檔案格式');return;}
+
+    // Try to extract date range from header lines (e.g. "2026年6月1日 - 2026年6月25日")
+    let extractedStartDate='';
+    for(let i=0;i<Math.min(5,lines.length);i++){
+      const m=lines[i].match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+      if(m){
+        extractedStartDate=m[1]+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[3]).padStart(2,'0');
+        break;
+      }
+      // Also try YYYY-MM-DD or YYYY/MM/DD range format
+      const m2=lines[i].match(/(\d{4})[\-\/](\d{1,2})[\-\/](\d{1,2})/);
+      if(m2){
+        extractedStartDate=m2[1]+'-'+String(m2[2]).padStart(2,'0')+'-'+String(m2[3]).padStart(2,'0');
+        break;
+      }
+    }
+
     // Find header row
     let headerIdx=0;
     for(let i=0;i<Math.min(10,lines.length);i++){
@@ -723,7 +737,13 @@ function processCSVFile(file){
     csvState.rows=rows;
     csvState.mappings=detectMapping(headers);
     csvState.hasDateCol=!!(csvState.mappings.date);
-    // Skip step 2 and go directly to preview
+    // If no date col but we extracted a date from header, use it automatically
+    if(!csvState.hasDateCol&&extractedStartDate){
+      csvState.manualDate=extractedStartDate;
+      csvState.autoDateDetected=true;
+    } else {
+      csvState.autoDateDetected=false;
+    }
     doAutoPreview();
   };
   reader.readAsText(file,'UTF-8');
@@ -742,8 +762,13 @@ function parseCSVLine(line){
 }
 
 function doAutoPreview(){
-  // If no date col, show date picker modal then preview
   if(!csvState.hasDateCol){
+    // Auto-detected date from report header - skip to preview directly
+    if(csvState.autoDateDetected&&csvState.manualDate){
+      buildPreviewData();
+      return;
+    }
+    // No date found at all - ask user to pick
     const today=new Date().toISOString().slice(0,10);
     document.getElementById('mapper-grid').innerHTML=`
       <div style="background:#FFF8E1;border:1px solid #FFD54F;border-radius:10px;padding:20px;text-align:center">
