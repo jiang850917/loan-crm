@@ -442,7 +442,7 @@ tbody tr:hover td{background:#FAFAFA}
           <div class="thead"><div class="thead-title">CRM 客戶名單</div><span class="tcount" id="crm-count">0 筆</span></div>
           <div class="tscroll">
             <table>
-              <thead><tr><th style="width:36px"><input type="checkbox" id="crm-check-all" onchange="toggleAllCRM(this)" style="cursor:pointer;accent-color:var(--red)"></th><th>建立日期</th><th>姓名</th><th>後四碼</th><th>LINE</th><th>平台</th><th>廣告活動</th><th>業務</th><th>狀態</th><th>聯絡</th><th>接通</th><th>需求</th><th>送件</th><th>核准</th><th>撥款</th><th>撥款金額</th><th>產品</th><th></th></tr></thead>
+              <thead><tr><th style="width:36px"><input type="checkbox" id="crm-check-all" onchange="toggleAllCRM(this)" style="cursor:pointer;accent-color:var(--red)"></th><th>建立日期</th><th>姓名</th><th>後四碼</th><th>平台</th><th>廣告活動</th><th>業務</th><th>聯絡狀態</th><th>送件</th><th>核准</th><th>撥款</th><th>撥款金額</th><th>產品</th><th></th></tr></thead>
               <tbody id="crm-tbody"></tbody>
             </table>
           </div>
@@ -551,6 +551,7 @@ let DB={
     salesList:['業務A','業務B','業務C','業務D'],
     products:['信貸','二胎','債務整合','房貸','企業貸款','其他'],
     yesno:['是','否','待確認'],
+    contactStatus:['未接','業務ing','已送件','培養中','聯絡不上拒絕','無條件申辦','客戶說不要','換償諮師','進度追蹤','非客戶本人'],
     failReasons:['聯絡不上','條件不符','客戶取消','額度不足','利率不接受','資料未補齊','重複名單','其他']
   }
 };
@@ -573,8 +574,8 @@ function seedData(){
   const ph=['0912345678','0923456789','0934567890','0945678901','0956789012','0967890123','0978901234','0989012345','0912345679','0923456780','0934567891','0945678902','0956789013','0967890124','0978901235','0989012346','0912345680','0923456781','0934567892','0945678903'];
   const li=['L001','L002','L003','L004','L005','L006','L007','L008','','','','L012','','L014','','','L017','','','L020'];
   const sp=['業務A','業務B','業務C','業務D'];let id=1;
-  for(let i=0;i<18;i++) DB.crm.push({id:id++,createDate:'2026-06-18',platform:'Google',campaign:'需求開發-2026-06-18',adGroup:'影片1',creative:'影片1',keyword:'低利貸款',name:ns[i%20],phone:ph[i%20],lineId:li[i%20],email:'',sales:sp[i%4],contacted:'是',connected:i<12?'是':'否',hasNeed:i<8?'是':'否',submitted:i<3?'是':'否',submitDate:i<3?'2026-06-20':'',approved:i<2?'是':'否',approveDate:i<2?'2026-06-22':'',loaned:i===0?'是':'否',loanDate:i===0?'2026-06-25':'',loanAmount:i===0?850000:0,product:i===0?'信貸':'',failReason:'',note:''});
-  DB.crm.push({id:id++,createDate:'2026-06-24',platform:'Google',campaign:'需求開發-2026-06-24',adGroup:'影片2',creative:'影片2',keyword:'',name:ns[0],phone:ph[0],lineId:li[0],email:'',sales:'業務A',contacted:'是',connected:'是',hasNeed:'是',submitted:'否',submitDate:'',approved:'否',approveDate:'',loaned:'否',loanDate:'',loanAmount:0,product:'',failReason:'重複名單',note:'重複'});
+  for(let i=0;i<18;i++) DB.crm.push({id:id++,createDate:'2026-06-18',platform:'Google',campaign:'需求開發-2026-06-18',adGroup:'影片1',creative:'影片1',keyword:'低利貸款',name:ns[i%20],phone:ph[i%20],lineId:li[i%20],email:'',sales:sp[i%4],contactStatus:i<3?'已送件':i<8?'業務ing':'未接',contacted:'是',connected:i<12?'是':'否',hasNeed:i<8?'是':'否',submitted:i<3?'是':'否',submitDate:i<3?'2026-06-20':'',approved:i<2?'是':'否',approveDate:i<2?'2026-06-22':'',loaned:i===0?'是':'否',loanDate:i===0?'2026-06-25':'',loanAmount:i===0?850000:0,product:i===0?'信貸':'',failReason:'',note:''});
+  DB.crm.push({id:id++,createDate:'2026-06-24',platform:'Google',campaign:'需求開發-2026-06-24',adGroup:'影片2',creative:'影片2',keyword:'',name:ns[0],phone:ph[0],lineId:li[0],email:'',sales:'業務A',contactStatus:'業務ing',contacted:'是',connected:'是',hasNeed:'是',submitted:'否',submitDate:'',approved:'否',approveDate:'',loaned:'否',loanDate:'',loanAmount:0,product:'',failReason:'重複名單',note:'重複'});
   DB.crm.push({id:id++,createDate:'2026-06-24',platform:'Google',campaign:'需求開發-2026-06-24',adGroup:'影片2',creative:'影片2',keyword:'',name:ns[18],phone:ph[18],lineId:'',email:'',sales:'業務B',contacted:'否',connected:'否',hasNeed:'否',submitted:'否',submitDate:'',approved:'否',approveDate:'',loaned:'否',loanDate:'',loanAmount:0,product:'',failReason:'',note:''});
   for(let i=0;i<3;i++) DB.crm.push({id:id++,createDate:'2026-06-09',platform:'Meta',campaign:'訊息',adGroup:'',creative:'',keyword:'',name:ns[i+5],phone:ph[i+10],lineId:'',email:'',sales:sp[i%4],contacted:'是',connected:'是',hasNeed:'是',submitted:'是',submitDate:'2026-06-15',approved:i===0?'是':'否',approveDate:i===0?'2026-06-18':'',loaned:i===0?'是':'否',loanDate:i===0?'2026-06-20':'',loanAmount:i===0?1200000:0,product:i===0?'二胎':'',failReason:i>0?'條件不符':'',note:''});
   DB.crm.push({id:id++,createDate:'2026-06-11',platform:'Meta',campaign:'潛在客戶',adGroup:'',creative:'',keyword:'',name:ns[19],phone:ph[19],lineId:'',email:'',sales:'業務D',contacted:'是',connected:'是',hasNeed:'是',submitted:'是',submitDate:'2026-06-16',approved:'否',approveDate:'',loaned:'否',loanDate:'',loanAmount:0,product:'',failReason:'條件不符',note:''});
@@ -603,6 +604,16 @@ function platBadge(p){
   if(p==='Meta')return`<span class="badge b-meta">${p}</span>`;
   return`<span class="badge b-gray">${p}</span>`;
 }
+function contactStatusBadge(s){
+  if(!s)return'<span class="badge b-gray">未設定</span>';
+  if(s==='已送件')return`<span class="badge b-blue">${s}</span>`;
+  if(s==='無條件申辦')return`<span class="badge b-green">${s}</span>`;
+  if(s==='業務ing')return`<span class="badge b-purple">${s}</span>`;
+  if(s==='聯絡不上拒絕'||s==='客戶說不要'||s==='非客戶本人')return`<span class="badge b-red">${s}</span>`;
+  if(s==='培養中'||s==='進度追蹤')return`<span class="badge b-yellow">${s}</span>`;
+  return`<span class="badge b-gray">${s}</span>`;
+}
+
 function statusBadge(c){
   if(c.loaned==='是')return`<span class="badge b-green">✓ 撥款</span>`;
   if(c.approved==='是')return`<span class="badge b-blue">✓ 核准</span>`;
@@ -1010,10 +1021,11 @@ function renderCRM(){
     <td><input type="checkbox" class="crm-cb" data-id="${c.id}" onchange="updateCRMSel()" style="cursor:pointer;accent-color:var(--red)"></td>
     <td>${c.createDate}</td>
     <td>${c.name}${c.isDuplicate?` <span class="badge b-yellow" style="font-size:9px">重複</span>`:''}</td>
-    <td>${l4(c.phone)}</td><td>${dash(c.lineId)}</td><td>${platBadge(c.platform)}</td>
-    <td style="max-width:110px;overflow:hidden;text-overflow:ellipsis">${dash(c.campaign)}</td>
-    <td>${dash(c.sales)}</td><td>${statusBadge(c)}</td>
-    <td>${yn(c.contacted)}</td><td>${yn(c.connected)}</td><td>${yn(c.hasNeed)}</td>
+    <td>${l4(c.phone)}</td>
+    <td>${platBadge(c.platform)}</td>
+    <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis">${dash(c.campaign)}</td>
+    <td>${dash(c.sales)}</td>
+    <td>${contactStatusBadge(c.contactStatus)}</td>
     <td>${yn(c.submitted)}</td><td>${yn(c.approved)}</td><td>${yn(c.loaned)}</td>
     <td>${c.loanAmount?'<strong>$'+fm(c.loanAmount)+'</strong>':'—'}</td>
     <td>${dash(c.product)}</td>
@@ -1222,16 +1234,16 @@ function openModal(type,id){
       <div class="fgroup"><label class="flabel">建立日期</label><input type="date" id="c-date" value="${d?d.createDate:'2026-06-25'}"></div>
       <div class="fgroup"><label class="flabel">姓名</label><input id="c-name" value="${d?d.name:''}"></div>
       <div class="fgroup"><label class="flabel">電話</label><input id="c-phone" value="${d?d.phone:''}"></div>
-      <div class="fgroup"><label class="flabel">LINE ID</label><input id="c-line" value="${d?d.lineId:''}"></div>
-      <div class="fgroup"><label class="flabel">Email</label><input id="c-email" value="${d?d.email:''}"></div>
       <div class="fdiv-label">廣告來源</div>
-      <div class="fgroup"><label class="flabel">來源平台</label><select id="c-plat">${platO(d?d.platform:'')}</select></div>
-      <div class="fgroup"><label class="flabel">廣告活動</label><input id="c-camp" value="${d?d.campaign:''}"></div>
-      <div class="fgroup"><label class="flabel">業務</label><select id="c-sales">${salO(d?d.sales:'')}</select></div>
-      <div class="fdiv-label">聯絡進度</div>
-      <div class="fgroup"><label class="flabel">已聯絡</label><select id="c-cont">${ynO(d?d.contacted:'否')}</select></div>
-      <div class="fgroup"><label class="flabel">接通</label><select id="c-conn">${ynO(d?d.connected:'否')}</select></div>
-      <div class="fgroup"><label class="flabel">有需求</label><select id="c-need">${ynO(d?d.hasNeed:'否')}</select></div>
+      <div class="fgroup"><label class="flabel">來源平台</label><select id="crm-plat-sel" onchange="updateCampOptions()">${platO(d?d.platform:'')}</select></div>
+      <div class="fgroup"><label class="flabel">廣告活動</label>
+        <select id="c-camp"><option value="">（請選擇）</option>${[...new Set(DB.ads.map(a=>a.campaign).filter(Boolean))].sort().map(c=>`<option value="${c}"${d&&d.campaign===c?' selected':''} >${c}</option>`).join('')}${d&&d.campaign&&!DB.ads.some(a=>a.campaign===d.campaign)?`<option value="${d.campaign}" selected>${d.campaign}</option>`:''}</select>
+      </div>
+      <div class="fgroup"><label class="flabel">業務</label><select id="crm-sales-sel">${salO(d?d.sales:'')}</select></div>
+      <div class="fdiv-label">聯絡狀態</div>
+      <div class="fgroup full"><label class="flabel">目前狀態</label>
+        <select id="c-status">${DB.settings.contactStatus.map(s=>`<option value="${s}"${d&&d.contactStatus===s?' selected':''}>${s}</option>`).join('')}</select>
+      </div>
       <div class="fdiv-label">業務進度</div>
       <div class="fgroup"><label class="flabel">送件</label><select id="c-sub">${ynO(d?d.submitted:'否')}</select></div>
       <div class="fgroup"><label class="flabel">送件日期</label><input type="date" id="c-sdate" value="${d?d.submitDate:''}"></div>
@@ -1241,7 +1253,6 @@ function openModal(type,id){
       <div class="fgroup"><label class="flabel">撥款日期</label><input type="date" id="c-ldate" value="${d?d.loanDate:''}"></div>
       <div class="fgroup"><label class="flabel">撥款金額</label><input type="number" id="c-lamt" value="${d?d.loanAmount:''}"></div>
       <div class="fgroup"><label class="flabel">貸款產品</label><select id="c-prod">${proO(d?d.product:'')}</select></div>
-      <div class="fgroup"><label class="flabel">失敗原因</label><select id="c-fr">${frO(d?d.failReason:'')}</select></div>
       <div class="fgroup full"><label class="flabel">備註</label><textarea id="c-note">${d?d.note:''}</textarea></div>
     </div></div>
     <div class="mfoot"><button class="btn btn-ghost" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="saveCRM(${d?d.id:0})">儲存</button></div>`;
@@ -1258,8 +1269,18 @@ function saveAd(id){
   if(id){const i=DB.ads.findIndex(a=>a.id===id);if(i>=0)DB.ads[i]=obj;}else DB.ads.push(obj);
   saveDB();closeModal();renderAds();
 }
+function updateCampOptions(){
+  const plat=document.getElementById('crm-plat-sel');
+  const camp=document.getElementById('c-camp');
+  if(!plat||!camp)return;
+  const p=plat.value;
+  const camps=[...new Set(DB.ads.filter(a=>!p||a.platform===p).map(a=>a.campaign).filter(Boolean))].sort();
+  const cur=camp.value;
+  camp.innerHTML='<option value="">（請選擇）</option>'+camps.map(c=>`<option value="${c}"${c===cur?' selected':''}>${c}</option>`).join('');
+}
+
 function saveCRM(id){
-  const obj={id:id||Date.now(),createDate:document.getElementById('c-date').value,name:document.getElementById('c-name').value,phone:document.getElementById('c-phone').value,lineId:document.getElementById('c-line').value,email:document.getElementById('c-email').value,platform:document.getElementById('c-plat').value,campaign:document.getElementById('c-camp').value,adGroup:'',creative:'',keyword:'',sales:document.getElementById('c-sales').value,contacted:document.getElementById('c-cont').value,connected:document.getElementById('c-conn').value,hasNeed:document.getElementById('c-need').value,submitted:document.getElementById('c-sub').value,submitDate:document.getElementById('c-sdate').value,approved:document.getElementById('c-apr').value,approveDate:document.getElementById('c-adate').value,loaned:document.getElementById('c-loan').value,loanDate:document.getElementById('c-ldate').value,loanAmount:+document.getElementById('c-lamt').value||0,product:document.getElementById('c-prod').value,failReason:document.getElementById('c-fr').value,note:document.getElementById('c-note').value};
+  const obj={id:id||Date.now(),createDate:document.getElementById('c-date').value,name:document.getElementById('c-name').value,phone:document.getElementById('c-phone').value,lineId:'',email:'',platform:document.getElementById('crm-plat-sel').value,campaign:document.getElementById('c-camp').value||'',adGroup:'',creative:'',keyword:'',sales:document.getElementById('crm-sales-sel').value,contactStatus:document.getElementById('c-status').value,contacted:'是',connected:'是',hasNeed:'是',submitted:document.getElementById('c-sub').value,submitDate:document.getElementById('c-sdate').value,approved:document.getElementById('c-apr').value,approveDate:document.getElementById('c-adate').value,loaned:document.getElementById('c-loan').value,loanDate:document.getElementById('c-ldate').value,loanAmount:+document.getElementById('c-lamt').value||0,product:document.getElementById('c-prod').value,failReason:'',note:document.getElementById('c-note').value};
   if(id){const i=DB.crm.findIndex(c=>c.id===id);if(i>=0)DB.crm[i]=obj;}else DB.crm.push(obj);
   markDups();saveDB();closeModal();renderCRM();
 }
