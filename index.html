@@ -319,9 +319,9 @@ tbody tr:hover td{background:#FAFAFA}
           <!-- Steps -->
           <div class="steps" id="import-steps">
             <div class="step active" id="s1"><div class="step-num">1</div>上傳 CSV</div>
-            <div class="step-line"></div>
-            <div class="step" id="s2"><div class="step-num">2</div>對應欄位</div>
-            <div class="step-line"></div>
+            <div class="step-line" id="sline12"></div>
+            <div class="step" id="s2"><div class="step-num">2</div>選擇日期</div>
+            <div class="step-line" id="sline23"></div>
             <div class="step" id="s3"><div class="step-num">3</div>預覽確認</div>
             <div class="step-line"></div>
             <div class="step" id="s4"><div class="step-num">4</div>匯入完成</div>
@@ -340,13 +340,10 @@ tbody tr:hover td{background:#FAFAFA}
             </div>
           </div>
 
-          <!-- Step 2: Map columns -->
+          <!-- Step 2: Date picker (Google Ads only, no date col) -->
           <div id="import-step2" style="display:none">
-            <div class="mapper-wrap">
-              <div class="mapper-title">對應欄位（系統已自動偵測，請確認或調整）</div>
-              <div class="mapper-grid" id="mapper-grid"></div>
-            </div>
-            <div style="display:flex;gap:10px;margin-top:14px">
+            <div id="mapper-grid"></div>
+            <div style="display:flex;gap:10px;margin-top:16px">
               <button class="btn btn-ghost" onclick="resetImport()">← 重新上傳</button>
               <button class="btn btn-primary" onclick="previewImport()">預覽匯入資料 →</button>
             </div>
@@ -357,7 +354,7 @@ tbody tr:hover td{background:#FAFAFA}
             <div class="preview-stats" id="preview-stats"></div>
             <div class="preview-wrap" id="preview-wrap"></div>
             <div style="display:flex;gap:10px;margin-top:14px">
-              <button class="btn btn-ghost" onclick="showStep(2)">← 返回欄位對應</button>
+              <button class="btn btn-ghost" onclick="resetImport()">← 重新上傳</button>
               <button class="btn btn-primary" onclick="confirmImport()" id="btn-confirm-import">✅ 確認匯入</button>
             </div>
           </div>
@@ -646,30 +643,43 @@ function onMonthChange(){
 // ═══════════════════════════════════════════
 // CSV IMPORT ENGINE
 // ═══════════════════════════════════════════
-let csvState={platform:'Google',rawHeaders:[],rows:[],mappings:{}};
+let csvState={platform:'Google',rawHeaders:[],rows:[],mappings:{},hasDateCol:true,manualDate:'',preview:[]};
 
-// Known column name aliases for auto-detection
-const COL_ALIASES={
-  date:['日期','date','day','report date','報表日期','時間','開始日期'],
-  campaign:['廣告活動','campaign','campaign name','廣告活動名稱'],
-  adGroup:['廣告組合','ad set','ad set name','廣告組','adgroup','ad group'],
-  creative:['廣告','ad name','廣告名稱','素材'],
-  spend:['費用','spend','cost','amount spent','花費','支出','金額','cost (twd)','費用（twd）'],
-  impression:['曝光次數','impressions','曝光','展示次數'],
-  click:['點擊次數','clicks','點擊','link clicks','互動'],
-  platformLead:['轉換次數','conversions','leads','潛在顧客','leads (form)','表單leads','lead','form leads','轉換','conversions（lead）','轉換 (平台可比性)'],
+// Fixed platform mappings - no manual selection needed
+const PLATFORM_MAPS={
+  Google:{
+    date:null,
+    campaign:'廣告活動',
+    adGroup:null,
+    creative:null,
+    spend:'費用',
+    impression:'曝光',
+    click:'點擊',
+    platformLead:'轉換',
+  },
+  Meta:{
+    date:'分析報告開始',
+    campaign:'行銷活動名稱',
+    adGroup:null,
+    creative:null,
+    spend:'花費金額 (TWD)',
+    impression:'曝光次數',
+    click:'觸及人數',
+    platformLead:'成果',
+  }
 };
 
 function detectMapping(headers){
+  const map=PLATFORM_MAPS[csvState.platform];
   const m={};
-  const hLower=headers.map(h=>h.toLowerCase().trim());
-  Object.keys(COL_ALIASES).forEach(field=>{
-    const aliases=COL_ALIASES[field];
-    for(const alias of aliases){
-      const idx=hLower.findIndex(h=>h.includes(alias.toLowerCase()));
-      if(idx>=0){m[field]=headers[idx];break;}
-    }
-    if(!m[field])m[field]='';
+  Object.keys(map).forEach(field=>{
+    if(!map[field]){m[field]='';return;}
+    // exact match first
+    const exact=headers.find(h=>h.trim()===map[field]);
+    if(exact){m[field]=exact;return;}
+    // partial match fallback
+    const partial=headers.find(h=>h.toLowerCase().includes(map[field].toLowerCase()));
+    m[field]=partial||'';
   });
   return m;
 }
@@ -699,24 +709,22 @@ function processCSVFile(file){
     let headerIdx=0;
     for(let i=0;i<Math.min(10,lines.length);i++){
       const low=lines[i].toLowerCase();
-      if(low.includes('campaign')||low.includes('廣告活動')||low.includes('date')||low.includes('日期')||low.includes('費用')){headerIdx=i;break;}
+      if(low.includes('廣告活動')||low.includes('行銷活動')||low.includes('campaign')||low.includes('費用')||low.includes('spend')){headerIdx=i;break;}
     }
     const headers=parseCSVLine(lines[headerIdx]);
     const rows=[];
     for(let i=headerIdx+1;i<lines.length;i++){
       const row=parseCSVLine(lines[i]);
-      // Skip summary rows (總計) and empty rows
       if(!row.length||!row.some(c=>c.trim()))continue;
-      if(row[0].includes('總計')||row[0].includes('total')||row[0].toLowerCase().includes('total'))continue;
+      if(row[0].includes('總計')||row[0].toLowerCase().includes('total'))continue;
       if(row.length>=2&&row.some(c=>c.trim()))rows.push(row);
     }
     csvState.rawHeaders=headers;
     csvState.rows=rows;
     csvState.mappings=detectMapping(headers);
-    // Detect if no date column exists
-    csvState.hasDateCol=!!csvState.mappings.date;
-    showStep(2);
-    buildMapper();
+    csvState.hasDateCol=!!(csvState.mappings.date);
+    // Skip step 2 and go directly to preview
+    doAutoPreview();
   };
   reader.readAsText(file,'UTF-8');
 }
@@ -733,74 +741,43 @@ function parseCSVLine(line){
   return result;
 }
 
-function buildMapper(){
-  const fields=[
-    {key:'date',label:'日期',required:true},
-    {key:'campaign',label:'廣告活動',required:true},
-    {key:'adGroup',label:'廣告組合',required:false},
-    {key:'creative',label:'素材／廣告',required:false},
-    {key:'spend',label:'花費 (元)',required:true},
-    {key:'impression',label:'曝光次數',required:false},
-    {key:'click',label:'點擊次數',required:false},
-    {key:'platformLead',label:'平台 Lead 數',required:false},
-  ];
-  const noDateHtml=csvState.hasDateCol?'':`
-    <div style="background:#FFF8E1;border:1px solid #FFD54F;border-radius:8px;padding:14px 16px;margin-bottom:14px">
-      <div style="font-size:12px;font-weight:600;color:#7D6608;margin-bottom:8px">⚠️ 此報表沒有日期欄，請手動輸入這批資料的日期</div>
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <div style="display:flex;flex-direction:column;gap:4px">
-          <label style="font-size:11px;font-weight:600;color:#92400E;text-transform:uppercase">報表日期（單日或起始日）</label>
-          <input type="date" id="manual-date" value="${new Date().toISOString().slice(0,10)}" style="border:1px solid #FCD34D;border-radius:6px;padding:6px 10px;font-size:13px;font-family:var(--font);outline:none">
-        </div>
-        <div style="font-size:12px;color:#92400E;margin-top:18px">← 這個日期會套用到所有匯入的廣告活動</div>
-      </div>
-    </div>`;
-  document.getElementById('mapper-grid').innerHTML=noDateHtml+`<div class="mapper-grid">`+fields.map(f=>{
-    // For date field when no date col, show disabled select
-    if(f.key==='date'&&!csvState.hasDateCol){
-      return`<div class="mapper-row">
-        <div class="mapper-label">${f.label} <span style="color:var(--red)">*</span></div>
-        <select class="mapper-select" disabled style="opacity:.4"><option>（使用上方手動輸入日期）</option></select>
+function doAutoPreview(){
+  // If no date col, show date picker modal then preview
+  if(!csvState.hasDateCol){
+    const today=new Date().toISOString().slice(0,10);
+    document.getElementById('mapper-grid').innerHTML=`
+      <div style="background:#FFF8E1;border:1px solid #FFD54F;border-radius:10px;padding:20px;text-align:center">
+        <div style="font-size:32px;margin-bottom:10px">📅</div>
+        <div style="font-size:14px;font-weight:600;color:#7D6608;margin-bottom:6px">這份報表沒有日期欄</div>
+        <div style="font-size:12px;color:#92400E;margin-bottom:16px">請選擇這批廣告資料的日期（會套用到全部廣告活動）</div>
+        <input type="date" id="manual-date" value="${today}" style="border:2px solid #FCD34D;border-radius:8px;padding:8px 14px;font-size:14px;font-family:var(--font);outline:none;text-align:center">
       </div>`;
-    }
-    return`<div class="mapper-row">
-      <div class="mapper-label">${f.label}${f.required?' <span style="color:var(--red)">*</span>':''}</div>
-      <select class="mapper-select" id="map-${f.key}" onchange="csvState.mappings['${f.key}']=this.value">
-        ${csvState.rawHeaders.map(h=>`<option value="${h}"${csvState.mappings[f.key]===h?' selected':''}>${h}</option>`).join('')}
-        ${f.required?'':'<option value=""'+(csvState.mappings[f.key]?'':' selected')+'>(不匯入)</option>'}
-      </select>
-    </div>`;
-  }).join('')+`</div>`;
+    showStep(2);
+    return;
+  }
+  buildPreviewData();
 }
 
-function parseMoney(v){
-  if(!v)return 0;
-  return parseFloat(v.toString().replace(/[^0-9.\-]/g,''))||0;
-}
-
-function previewImport(){
-  const m=csvState.mappings;
-  if(!m.campaign||!m.spend){alert('請至少對應：廣告活動、花費 兩個欄位');return;}
+function buildPreviewData(){
   if(!csvState.hasDateCol){
     const md=document.getElementById('manual-date');
-    if(!md||!md.value){alert('請輸入報表日期');return;}
+    if(!md||!md.value){alert('請選擇日期');return;}
     csvState.manualDate=md.value;
   }
+  const m=csvState.mappings;
   const hIdx={};csvState.rawHeaders.forEach((h,i)=>hIdx[h]=i);
   const preview=[];
   csvState.rows.forEach(row=>{
-    const get=field=>m[field]?row[hIdx[m[field]]]||'':'';
+    const get=field=>m[field]&&hIdx[m[field]]!==undefined?row[hIdx[m[field]]]||'':'';
     const spendRaw=get('spend');
-    if(!spendRaw)return;
-    let dateNorm=csvState.hasDateCol?get('date'):csvState.manualDate;
-    if(csvState.hasDateCol){
-      dateNorm=dateNorm.replace(/\//g,'-');
-      if(/^\d{1,2}-\d{1,2}-\d{4}$/.test(dateNorm)){const p=dateNorm.split('-');dateNorm=p[2]+'-'+p[0].padStart(2,'0')+'-'+p[1].padStart(2,'0');}
-      else if(/^\d{4}-\d{1,2}-\d{1,2}$/.test(dateNorm)){const p=dateNorm.split('-');dateNorm=p[0]+'-'+p[1].padStart(2,'0')+'-'+p[2].padStart(2,'0');}
-    }
-    if(!dateNorm)return;
     const campName=get('campaign');
-    if(!campName)return;
+    if(!spendRaw||!campName)return;
+    let dateNorm=csvState.hasDateCol?get('date'):csvState.manualDate;
+    if(!dateNorm)return;
+    // Normalize date
+    dateNorm=dateNorm.replace(/\//g,'-');
+    if(/^\d{1,2}-\d{1,2}-\d{4}$/.test(dateNorm)){const p=dateNorm.split('-');dateNorm=p[2]+'-'+p[0].padStart(2,'0')+'-'+p[1].padStart(2,'0');}
+    else if(/^\d{4}-\d{1,2}-\d{1,2}$/.test(dateNorm)){const p=dateNorm.split('-');dateNorm=p[0]+'-'+p[1].padStart(2,'0')+'-'+p[2].padStart(2,'0');}
     preview.push({
       date:dateNorm,month:gm(dateNorm),
       platform:csvState.platform,
@@ -815,7 +792,7 @@ function previewImport(){
     });
   });
   csvState.preview=preview;
-  if(!preview.length){alert('無法解析任何有效資料，請確認欄位對應是否正確');return;}
+  if(!preview.length){alert('無法解析任何有效資料，請確認平台選擇是否正確（Google Ads 或 Meta Ads）');return;}
   const minD=preview.reduce((a,b)=>a.date<b.date?a:b).date;
   const maxD=preview.reduce((a,b)=>a.date>b.date?a:b).date;
   const totalSpend=preview.reduce((s,r)=>s+r.spend,0);
@@ -825,18 +802,24 @@ function previewImport(){
     <div class="pstat">總花費：<strong>$${fm(totalSpend)}</strong></div>
     <div class="pstat">平台：<strong>${csvState.platform}</strong></div>`;
   document.getElementById('preview-wrap').innerHTML=`<table>
-    <thead><tr><th>日期</th><th>月份</th><th>平台</th><th>廣告活動</th><th>廣告組</th><th>花費</th><th>曝光</th><th>點擊</th><th>Lead</th></tr></thead>
+    <thead><tr><th>日期</th><th>月份</th><th>平台</th><th>廣告活動</th><th>花費</th><th>曝光</th><th>點擊</th><th>Lead</th></tr></thead>
     <tbody>${preview.slice(0,50).map(r=>`<tr>
       <td>${r.date}</td><td>${r.month}</td><td>${platBadge(r.platform)}</td>
-      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis">${r.campaign}</td>
-      <td>${r.adGroup||'—'}</td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis">${r.campaign}</td>
       <td>$${fm(r.spend)}</td><td>${fm(r.impression)||'—'}</td>
       <td>${fm(r.click)||'—'}</td><td>${r.platformLead||'—'}</td>
     </tr>`).join('')}
-    ${preview.length>50?`<tr><td colspan="9" style="text-align:center;color:var(--g400);font-style:italic">… 僅顯示前 50 筆，共 ${preview.length} 筆</td></tr>`:''}
+    ${preview.length>50?`<tr><td colspan="8" style="text-align:center;color:var(--g400);font-style:italic">… 僅顯示前 50 筆，共 ${preview.length} 筆</td></tr>`:''}
     </tbody></table>`;
   showStep(3);
 }
+
+function parseMoney(v){
+  if(!v)return 0;
+  return parseFloat(v.toString().replace(/[^0-9.\-]/g,''))||0;
+}
+
+function previewImport(){ buildPreviewData(); }
 
 function confirmImport(){
   const pr=csvState.preview;if(!pr||!pr.length)return;
@@ -862,13 +845,22 @@ function showStep(n){
     const s=document.getElementById('s'+i);
     if(s){s.className='step'+(i<n?' done':i===n?' active':'');}
   });
+  // Hide step 2 in steps bar for Meta (no date selection needed)
+  const line12=document.getElementById('sline12');
+  const s2el=document.getElementById('s2');
+  if(line12&&s2el){
+    const hide=!csvState.hasDateCol===false; // Meta has date col
+    // For Meta: dim step 2 indicator
+  }
 }
 
 function resetImport(){
-  csvState={platform:csvState.platform,rawHeaders:[],rows:[],mappings:{}};
+  csvState={platform:csvState.platform,rawHeaders:[],rows:[],mappings:{},hasDateCol:true,manualDate:'',preview:[]};
   document.getElementById('csv-file').value='';
   showStep(1);
 }
+
+
 
 function renderImportLog(){
   document.getElementById('import-log-count').textContent=DB.importLogs.length+' 次';
