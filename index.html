@@ -395,6 +395,10 @@ tbody tr:hover td{background:#FAFAFA}
           <button class="btn btn-ghost" onclick="nav('import',document.querySelector('[onclick=\"nav(\'import\',this)\"]'))">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>CSV 匯入
           </button>
+          <button class="btn btn-ghost" id="btn-ad-batch-del" style="display:none;color:var(--red);border-color:var(--red-border)" onclick="batchDelAd()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+            刪除已選 (<span id="ad-sel-count">0</span>)
+          </button>
         </div>
         <div class="fbar">
           <div class="fg"><label>月份</label><select id="ad-fm" onchange="renderAds()"><option value="">全部</option></select></div>
@@ -404,7 +408,7 @@ tbody tr:hover td{background:#FAFAFA}
           <div class="thead"><div class="thead-title">廣告花費記錄</div><span class="tcount" id="ad-count">0 筆</span></div>
           <div class="tscroll">
             <table>
-              <thead><tr><th>日期</th><th>月份</th><th>平台</th><th>廣告活動</th><th>廣告組</th><th>素材</th><th>花費</th><th>曝光</th><th>點擊</th><th>平台Lead</th><th>CPC</th><th>CPL</th><th>來源</th><th></th></tr></thead>
+              <thead><tr><th style="width:36px"><input type="checkbox" id="ad-check-all" onchange="toggleAllAd(this)" style="cursor:pointer;accent-color:var(--red)"></th><th>日期</th><th>月份</th><th>平台</th><th>廣告活動</th><th>廣告組</th><th>素材</th><th>花費</th><th>曝光</th><th>點擊</th><th>平台Lead</th><th>CPC</th><th>CPL</th><th>來源</th><th></th></tr></thead>
               <tbody id="ad-tbody"></tbody>
             </table>
           </div>
@@ -416,6 +420,10 @@ tbody tr:hover td{background:#FAFAFA}
         <div class="brow">
           <button class="btn btn-primary" onclick="openModal('crm')">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>新增客戶
+          </button>
+          <button class="btn btn-ghost" id="btn-batch-del" style="display:none;color:var(--red);border-color:var(--red-border)" onclick="batchDelCRM()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+            刪除已選 (<span id="sel-count">0</span>)
           </button>
           <div style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
             <span class="badge b-yellow">■ 重複名單</span>
@@ -437,7 +445,7 @@ tbody tr:hover td{background:#FAFAFA}
           <div class="thead"><div class="thead-title">CRM 客戶名單</div><span class="tcount" id="crm-count">0 筆</span></div>
           <div class="tscroll">
             <table>
-              <thead><tr><th>建立日期</th><th>姓名</th><th>後四碼</th><th>LINE</th><th>平台</th><th>廣告活動</th><th>業務</th><th>狀態</th><th>聯絡</th><th>接通</th><th>需求</th><th>送件</th><th>核准</th><th>撥款</th><th>撥款金額</th><th>產品</th><th></th></tr></thead>
+              <thead><tr><th style="width:36px"><input type="checkbox" id="crm-check-all" onchange="toggleAllCRM(this)" style="cursor:pointer;accent-color:var(--red)"></th><th>建立日期</th><th>姓名</th><th>後四碼</th><th>LINE</th><th>平台</th><th>廣告活動</th><th>業務</th><th>狀態</th><th>聯絡</th><th>接通</th><th>需求</th><th>送件</th><th>核准</th><th>撥款</th><th>撥款金額</th><th>產品</th><th></th></tr></thead>
               <tbody id="crm-tbody"></tbody>
             </table>
           </div>
@@ -910,9 +918,13 @@ function renderAds(){
   const mth=document.getElementById('ad-fm').value,fpv=pf.value;
   const data=DB.ads.filter(a=>(!mth||gm(a.date)===mth)&&(!fpv||a.platform===fpv));
   document.getElementById('ad-count').textContent=data.length+' 筆';
+  const ca=document.getElementById('ad-check-all');if(ca)ca.checked=false;
+  document.getElementById('btn-ad-batch-del').style.display='none';
+  document.getElementById('ad-sel-count').textContent='0';
   document.getElementById('ad-tbody').innerHTML=data.map(a=>{
     const srcBadge=a.source&&a.source.startsWith('csv')?`<span class="badge b-blue" style="font-size:10px">CSV</span>`:`<span class="badge b-gray" style="font-size:10px">手動</span>`;
-    return`<tr><td>${a.date}</td><td>${gm(a.date)}</td><td>${platBadge(a.platform)}</td>
+    return`<tr><td><input type="checkbox" class="ad-cb" data-id="${a.id}" onchange="updateAdSel()" style="cursor:pointer;accent-color:var(--red)"></td>
+    <td>${a.date}</td><td>${gm(a.date)}</td><td>${platBadge(a.platform)}</td>
     <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis">${a.campaign}</td>
     <td>${dash(a.adGroup)}</td><td>${dash(a.creative)}</td>
     <td>$${fm(a.spend)}</td><td>${fm(a.impression)||'—'}</td><td>${fm(a.click)||'—'}</td>
@@ -923,6 +935,31 @@ function renderAds(){
     <td><button class="bicon" onclick="openModal('ad',${a.id})">✏️</button><button class="bicon del" onclick="delAd(${a.id})">🗑</button></td></tr>`;
   }).join('');
 }
+
+function toggleAllAd(el){
+  document.querySelectorAll('.ad-cb').forEach(cb=>cb.checked=el.checked);
+  updateAdSel();
+}
+
+function updateAdSel(){
+  const checked=document.querySelectorAll('.ad-cb:checked');
+  const n=checked.length;
+  document.getElementById('ad-sel-count').textContent=n;
+  document.getElementById('btn-ad-batch-del').style.display=n>0?'':'none';
+  const all=document.querySelectorAll('.ad-cb');
+  const ca=document.getElementById('ad-check-all');
+  if(ca)ca.checked=all.length>0&&checked.length===all.length;
+}
+
+function batchDelAd(){
+  const checked=document.querySelectorAll('.ad-cb:checked');
+  if(!checked.length)return;
+  if(!confirm(`確定刪除選取的 ${checked.length} 筆廣告資料？`))return;
+  const ids=new Set([...checked].map(cb=>+cb.dataset.id));
+  DB.ads=DB.ads.filter(a=>!ids.has(a.id));
+  saveDB();renderAds();
+}
+
 function delAd(id){if(confirm('確定刪除？')){DB.ads=DB.ads.filter(a=>a.id!==id);saveDB();renderAds();}}
 
 // ═══════════════════════════════════════════
@@ -946,11 +983,16 @@ function renderCRM(){
     return true;
   });
   document.getElementById('crm-count').textContent=data.length+' 筆';
+  const ca=document.getElementById('crm-check-all');if(ca)ca.checked=false;
+  document.getElementById('btn-batch-del').style.display='none';
+  document.getElementById('sel-count').textContent='0';
   document.getElementById('crm-tbody').innerHTML=data.map(c=>{
     const days=Math.floor((now-new Date(c.createDate))/86400000);
     const isAlert=c.contacted!=='是'&&days>=1;
     const rc=c.loaned==='是'?'row-paid':c.isDuplicate?'row-dup':isAlert?'row-alert':'';
-    return`<tr class="${rc}"><td>${c.createDate}</td>
+    return`<tr class="${rc}" id="crm-row-${c.id}">
+    <td><input type="checkbox" class="crm-cb" data-id="${c.id}" onchange="updateCRMSel()" style="cursor:pointer;accent-color:var(--red)"></td>
+    <td>${c.createDate}</td>
     <td>${c.name}${c.isDuplicate?` <span class="badge b-yellow" style="font-size:9px">重複</span>`:''}</td>
     <td>${l4(c.phone)}</td><td>${dash(c.lineId)}</td><td>${platBadge(c.platform)}</td>
     <td style="max-width:110px;overflow:hidden;text-overflow:ellipsis">${dash(c.campaign)}</td>
@@ -962,6 +1004,31 @@ function renderCRM(){
     <td><button class="bicon" onclick="openModal('crm',${c.id})">✏️</button><button class="bicon del" onclick="delCRM(${c.id})">🗑</button></td></tr>`;
   }).join('');
 }
+
+function toggleAllCRM(el){
+  document.querySelectorAll('.crm-cb').forEach(cb=>cb.checked=el.checked);
+  updateCRMSel();
+}
+
+function updateCRMSel(){
+  const checked=document.querySelectorAll('.crm-cb:checked');
+  const n=checked.length;
+  document.getElementById('sel-count').textContent=n;
+  document.getElementById('btn-batch-del').style.display=n>0?'':'none';
+  const all=document.querySelectorAll('.crm-cb');
+  const ca=document.getElementById('crm-check-all');
+  if(ca)ca.checked=all.length>0&&checked.length===all.length;
+}
+
+function batchDelCRM(){
+  const checked=document.querySelectorAll('.crm-cb:checked');
+  if(!checked.length)return;
+  if(!confirm(`確定刪除選取的 ${checked.length} 筆資料？`))return;
+  const ids=new Set([...checked].map(cb=>+cb.dataset.id));
+  DB.crm=DB.crm.filter(c=>!ids.has(c.id));
+  markDups();saveDB();renderCRM();
+}
+
 function delCRM(id){if(confirm('確定刪除？')){DB.crm=DB.crm.filter(c=>c.id!==id);markDups();saveDB();renderCRM();}}
 
 // ═══════════════════════════════════════════
