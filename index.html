@@ -712,9 +712,11 @@ function processCSVFile(file){
       if(m2){autoDate=m2[0];break;}
     }
 
-    // Step2: find header row
+    // Step2: find header row - must have multiple comma-separated columns
     let hi=0;
     for(let i=0;i<Math.min(10,lines.length);i++){
+      const cols=parseCSVLine(lines[i]);
+      if(cols.length<3) continue; // skip single-cell title rows
       const low=lines[i].toLowerCase();
       if(low.includes('廣告活動')||low.includes('行銷活動')||low.includes('campaign')||low.includes('費用')||low.includes('spend')){hi=i;break;}
     }
