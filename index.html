@@ -456,7 +456,7 @@ tbody tr:hover td{background:#FAFAFA}
           <div class="fg"><label>平台</label><select id="camp-fp" onchange="renderCampaign()"><option value="">全部</option></select></div>
         </div>
         <div class="tcard">
-          <div class="thead"><div class="thead-title">廣告活動分析</div><span class="tcount" id="camp-count">0 筆</span></div>
+          <div id="camp-warning" style="padding:0 12px;display:none"></div><div class="thead"><div class="thead-title">廣告活動分析</div><span class="tcount" id="camp-count">0 筆</span></div>
           <div class="tscroll">
             <table>
               <thead><tr><th>月份</th><th>平台</th><th>廣告活動</th><th>花費</th><th>平台Lead</th><th>CRM名單</th><th>有效名單</th><th>送件</th><th>核准</th><th>撥款</th><th>撥款金額</th><th>CPL</th><th>送件CPA</th><th>核准CPA</th><th>撥款CPA</th><th>ROAS</th></tr></thead>
@@ -1067,8 +1067,11 @@ function renderCampaign(){
   const pf=document.getElementById('camp-fp');const plats=[...new Set(DB.ads.map(a=>a.platform))];const cp=pf.value;
   pf.innerHTML='<option value="">全部</option>'+plats.map(p=>`<option${p===cp?' selected':''}>${p}</option>`).join('');
   const mth=document.getElementById('camp-fm').value,fpv=pf.value;
-  const keys=[...new Set(DB.ads.map(a=>gm(a.date)+'||'+a.platform+'||'+a.campaign))];
-  const rows=keys.filter(k=>{const[m,p]=k.split('||');return(!mth||m===mth)&&(!fpv||p===fpv);}).map(k=>{
+  // Combine keys from both ads AND crm so CRM entries always show up
+  const adKeys=new Set(DB.ads.map(a=>gm(a.date)+'||'+a.platform+'||'+a.campaign));
+  const crmKeys=new Set(DB.crm.filter(c=>c.campaign).map(c=>gm(c.createDate)+'||'+c.platform+'||'+c.campaign));
+  const allKeys=[...new Set([...adKeys,...crmKeys])];
+  const rows=allKeys.filter(k=>{const[m,p]=k.split('||');return(!mth||m===mth)&&(!fpv||p===fpv);}).map(k=>{
     const[m,p,c]=k.split('||');
     const ad=DB.ads.filter(a=>gm(a.date)===m&&a.platform===p&&a.campaign===c);
     const cr=DB.crm.filter(x=>gm(x.createDate)===m&&x.platform===p&&x.campaign===c);
@@ -1078,6 +1081,24 @@ function renderCampaign(){
     const lamt=cr.filter(x=>x.loaned==='是').reduce((s,x)=>s+x.loanAmount,0);
     return{m,p,c,spend,lead,crm:cr.length,valid,sub,apr,loan,lamt};
   });
+  // Check for CRM entries with campaigns that don't match any ad campaign
+  const adCampaigns=new Set(DB.ads.map(a=>a.platform+'|'+a.campaign));
+  const unmatchedCRM=DB.crm.filter(c=>c.campaign&&!adCampaigns.has(c.platform+'|'+c.campaign));
+  const warningEl=document.getElementById('camp-warning');
+  if(warningEl){
+    if(unmatchedCRM.length>0){
+      const uniqNames=[...new Set(unmatchedCRM.map(c=>c.campaign))];
+      warningEl.innerHTML=`<div style="background:#FFF8E1;border:1px solid #FFD54F;border-radius:8px;padding:12px 16px;margin-bottom:12px;font-size:12px">
+        ⚠️ 有 ${unmatchedCRM.length} 筆 CRM 名單的廣告活動名稱，在廣告花費中找不到對應：
+        <strong>${uniqNames.join('、')}</strong><br>
+        <span style="color:#92400E">請確認名稱是否完全一致（大小寫、空格都要相同）</span>
+      </div>`;
+      warningEl.style.display='';
+    } else {
+      warningEl.style.display='none';
+    }
+  }
+
   document.getElementById('camp-count').textContent=rows.length+' 筆';
   document.getElementById('camp-tbody').innerHTML=rows.map(r=>`<tr><td>${r.m}</td><td>${platBadge(r.p)}</td>
     <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis">${r.c}</td>
@@ -1093,8 +1114,9 @@ function renderPlatform(){
   fillSel('plat-fm',getMonths());const mth=document.getElementById('plat-fm').value;
   const plats=[...new Set(DB.ads.map(a=>a.platform))];const allM=mth?[mth]:getMonths();const rows=[];
   allM.forEach(m=>plats.forEach(p=>{
-    const ad=DB.ads.filter(a=>gm(a.date)===m&&a.platform===p);if(!ad.length)return;
+    const ad=DB.ads.filter(a=>gm(a.date)===m&&a.platform===p);
     const cr=DB.crm.filter(c=>gm(c.createDate)===m&&c.platform===p);
+    if(!ad.length&&!cr.length)return;
     const spend=ad.reduce((s,a)=>s+a.spend,0),lead=ad.reduce((s,a)=>s+a.platformLead,0);
     const valid=cr.filter(c=>!c.isDuplicate).length,sub=cr.filter(c=>c.submitted==='是').length;
     const apr=cr.filter(c=>c.approved==='是').length,loan=cr.filter(c=>c.loaned==='是').length;
