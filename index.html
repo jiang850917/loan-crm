@@ -650,14 +650,14 @@ let csvState={platform:'Google',rawHeaders:[],rows:[],mappings:{}};
 
 // Known column name aliases for auto-detection
 const COL_ALIASES={
-  date:['日期','date','day','report date','報表日期','時間'],
+  date:['日期','date','day','report date','報表日期','時間','開始日期'],
   campaign:['廣告活動','campaign','campaign name','廣告活動名稱'],
   adGroup:['廣告組合','ad set','ad set name','廣告組','adgroup','ad group'],
   creative:['廣告','ad name','廣告名稱','素材'],
   spend:['費用','spend','cost','amount spent','花費','支出','金額','cost (twd)','費用（twd）'],
   impression:['曝光次數','impressions','曝光','展示次數'],
-  click:['點擊次數','clicks','點擊','link clicks'],
-  platformLead:['轉換次數','conversions','leads','潛在顧客','leads (form)','表單leads','lead','form leads','轉換','conversions（lead）'],
+  click:['點擊次數','clicks','點擊','link clicks','互動'],
+  platformLead:['轉換次數','conversions','leads','潛在顧客','leads (form)','表單leads','lead','form leads','轉換','conversions（lead）','轉換 (平台可比性)'],
 };
 
 function detectMapping(headers){
@@ -692,25 +692,29 @@ function processCSVFile(file){
   const reader=new FileReader();
   reader.onload=e=>{
     let text=e.target.result;
-    // Try to detect and handle BOM
     if(text.charCodeAt(0)===0xFEFF)text=text.slice(1);
     const lines=text.split(/\r?\n/).filter(l=>l.trim());
     if(lines.length<2){alert('CSV 內容不足，請確認檔案格式');return;}
-    // Find actual header row (skip Google Ads summary lines at top)
+    // Find header row
     let headerIdx=0;
     for(let i=0;i<Math.min(10,lines.length);i++){
       const low=lines[i].toLowerCase();
-      if(low.includes('campaign')||low.includes('廣告活動')||low.includes('date')||low.includes('日期')){headerIdx=i;break;}
+      if(low.includes('campaign')||low.includes('廣告活動')||low.includes('date')||low.includes('日期')||low.includes('費用')){headerIdx=i;break;}
     }
     const headers=parseCSVLine(lines[headerIdx]);
     const rows=[];
     for(let i=headerIdx+1;i<lines.length;i++){
       const row=parseCSVLine(lines[i]);
+      // Skip summary rows (總計) and empty rows
+      if(!row.length||!row.some(c=>c.trim()))continue;
+      if(row[0].includes('總計')||row[0].includes('total')||row[0].toLowerCase().includes('total'))continue;
       if(row.length>=2&&row.some(c=>c.trim()))rows.push(row);
     }
     csvState.rawHeaders=headers;
     csvState.rows=rows;
     csvState.mappings=detectMapping(headers);
+    // Detect if no date column exists
+    csvState.hasDateCol=!!csvState.mappings.date;
     showStep(2);
     buildMapper();
   };
@@ -740,15 +744,33 @@ function buildMapper(){
     {key:'click',label:'點擊次數',required:false},
     {key:'platformLead',label:'平台 Lead 數',required:false},
   ];
-  const opts=['<option value="">(不匯入)</option>',...csvState.rawHeaders.map(h=>`<option value="${h}">${h}</option>`)].join('');
-  document.getElementById('mapper-grid').innerHTML=fields.map(f=>`
-    <div class="mapper-row">
+  const noDateHtml=csvState.hasDateCol?'':`
+    <div style="background:#FFF8E1;border:1px solid #FFD54F;border-radius:8px;padding:14px 16px;margin-bottom:14px">
+      <div style="font-size:12px;font-weight:600;color:#7D6608;margin-bottom:8px">⚠️ 此報表沒有日期欄，請手動輸入這批資料的日期</div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <label style="font-size:11px;font-weight:600;color:#92400E;text-transform:uppercase">報表日期（單日或起始日）</label>
+          <input type="date" id="manual-date" value="${new Date().toISOString().slice(0,10)}" style="border:1px solid #FCD34D;border-radius:6px;padding:6px 10px;font-size:13px;font-family:var(--font);outline:none">
+        </div>
+        <div style="font-size:12px;color:#92400E;margin-top:18px">← 這個日期會套用到所有匯入的廣告活動</div>
+      </div>
+    </div>`;
+  document.getElementById('mapper-grid').innerHTML=noDateHtml+`<div class="mapper-grid">`+fields.map(f=>{
+    // For date field when no date col, show disabled select
+    if(f.key==='date'&&!csvState.hasDateCol){
+      return`<div class="mapper-row">
+        <div class="mapper-label">${f.label} <span style="color:var(--red)">*</span></div>
+        <select class="mapper-select" disabled style="opacity:.4"><option>（使用上方手動輸入日期）</option></select>
+      </div>`;
+    }
+    return`<div class="mapper-row">
       <div class="mapper-label">${f.label}${f.required?' <span style="color:var(--red)">*</span>':''}</div>
       <select class="mapper-select" id="map-${f.key}" onchange="csvState.mappings['${f.key}']=this.value">
         ${csvState.rawHeaders.map(h=>`<option value="${h}"${csvState.mappings[f.key]===h?' selected':''}>${h}</option>`).join('')}
         ${f.required?'':'<option value=""'+(csvState.mappings[f.key]?'':' selected')+'>(不匯入)</option>'}
       </select>
-    </div>`).join('');
+    </div>`;
+  }).join('')+`</div>`;
 }
 
 function parseMoney(v){
@@ -758,22 +780,31 @@ function parseMoney(v){
 
 function previewImport(){
   const m=csvState.mappings;
-  if(!m.date||!m.campaign||!m.spend){alert('請至少對應：日期、廣告活動、花費 三個欄位');return;}
+  if(!m.campaign||!m.spend){alert('請至少對應：廣告活動、花費 兩個欄位');return;}
+  if(!csvState.hasDateCol){
+    const md=document.getElementById('manual-date');
+    if(!md||!md.value){alert('請輸入報表日期');return;}
+    csvState.manualDate=md.value;
+  }
   const hIdx={};csvState.rawHeaders.forEach((h,i)=>hIdx[h]=i);
   const preview=[];
   csvState.rows.forEach(row=>{
     const get=field=>m[field]?row[hIdx[m[field]]]||'':'';
-    const dateRaw=get('date');
     const spendRaw=get('spend');
-    if(!dateRaw||!spendRaw)return;
-    // Normalize date formats: YYYY/MM/DD, YYYY-MM-DD, MM/DD/YYYY, DD/MM/YYYY
-    let dateNorm=dateRaw.replace(/\//g,'-');
-    if(/^\d{1,2}-\d{1,2}-\d{4}$/.test(dateNorm)){const p=dateNorm.split('-');dateNorm=p[2]+'-'+p[0].padStart(2,'0')+'-'+p[1].padStart(2,'0');}
-    else if(/^\d{4}-\d{1,2}-\d{1,2}$/.test(dateNorm)){const p=dateNorm.split('-');dateNorm=p[0]+'-'+p[1].padStart(2,'0')+'-'+p[2].padStart(2,'0');}
+    if(!spendRaw)return;
+    let dateNorm=csvState.hasDateCol?get('date'):csvState.manualDate;
+    if(csvState.hasDateCol){
+      dateNorm=dateNorm.replace(/\//g,'-');
+      if(/^\d{1,2}-\d{1,2}-\d{4}$/.test(dateNorm)){const p=dateNorm.split('-');dateNorm=p[2]+'-'+p[0].padStart(2,'0')+'-'+p[1].padStart(2,'0');}
+      else if(/^\d{4}-\d{1,2}-\d{1,2}$/.test(dateNorm)){const p=dateNorm.split('-');dateNorm=p[0]+'-'+p[1].padStart(2,'0')+'-'+p[2].padStart(2,'0');}
+    }
+    if(!dateNorm)return;
+    const campName=get('campaign');
+    if(!campName)return;
     preview.push({
       date:dateNorm,month:gm(dateNorm),
       platform:csvState.platform,
-      campaign:get('campaign'),
+      campaign:campName,
       adGroup:get('adGroup'),
       creative:get('creative'),
       spend:parseMoney(spendRaw),
@@ -790,7 +821,7 @@ function previewImport(){
   const totalSpend=preview.reduce((s,r)=>s+r.spend,0);
   document.getElementById('preview-stats').innerHTML=`
     <div class="pstat">筆數：<strong>${preview.length}</strong></div>
-    <div class="pstat">日期範圍：<strong>${minD} ～ ${maxD}</strong></div>
+    <div class="pstat">日期：<strong>${minD===maxD?minD:minD+' ～ '+maxD}</strong></div>
     <div class="pstat">總花費：<strong>$${fm(totalSpend)}</strong></div>
     <div class="pstat">平台：<strong>${csvState.platform}</strong></div>`;
   document.getElementById('preview-wrap').innerHTML=`<table>
