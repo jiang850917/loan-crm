@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>貸款廣告 CRM Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --red:#E0281A;--red2:#F04436;--red-soft:#FFF1F0;--red-border:#FCCBC7;--red-dark:#B01E13;
+  --g25:#FAFAFA;--g50:#F6F6F6;--g100:#EFEFEF;--g200:#E2E2E2;--g300:#C8C8C8;
+  --g400:#9A9A9A;--g500:#717171;--g600:#4B4B4B;--g700:#2F2F2F;--g800:#1A1A1A;
+  --white:#FFF;
+  --sh-xs:0 1px 2px rgba(0,0,0,.06);--sh-sm:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+  --r-sm:8px;--r-md:12px;--r-lg:16px;
+  --font:'Inter',system-ui,sans-serif;
+}
+html,body{height:100%;font-family:var(--font);font-size:14px;color:var(--g800);background:var(--g25);-webkit-font-smoothing:antialiased}
+.layout{display:flex;height:100vh;overflow:hidden}
+.sidebar{width:220px;background:var(--white);border-right:1px solid var(--g100);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:52px;background:var(--white);border-bottom:1px solid var(--g100);display:flex;align-items:center;padding:0 24px;gap:12px;flex-shrink:0}
+.content{flex:1;overflow-y:auto;padding:28px 28px 48px}
+.brand{padding:18px 20px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--g100)}
+.brand-icon{width:32px;height:32px;background:var(--red);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.brand-name{font-size:14px;font-weight:600;color:var(--g800);line-height:1.2}
+.brand-sub{font-size:11px;color:var(--g400)}
+.nav-section{padding:14px 12px 6px}
+.nav-label{font-size:10px;font-weight:600;color:var(--g400);text-transform:uppercase;letter-spacing:.8px;padding:0 8px;margin-bottom:6px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r-sm);cursor:pointer;color:var(--g500);font-size:13px;font-weight:500;transition:all .15s;border:none;background:none;width:100%;text-align:left}
+.nav-item:hover{background:var(--g50);color:var(--g800)}
+.nav-item.active{background:var(--red-soft);color:var(--red);font-weight:600}
+.nav-item svg{width:15px;height:15px;flex-shrink:0;opacity:.7}
+.nav-item.active svg{opacity:1}
+.page-title{font-size:16px;font-weight:600;color:var(--g800)}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.month-pill{display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--g50);border:1px solid var(--g200);border-radius:20px;font-size:12px;font-weight:500;color:var(--g600)}
+.month-pill select{border:none;background:none;font-size:12px;font-weight:500;color:var(--g700);cursor:pointer;outline:none;font-family:var(--font)}
+.page{display:none}.page.active{display:block}
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:14px;margin-bottom:24px}
+.kpi-card{background:var(--white);border:1px solid var(--g100);border-radius:var(--r-md);padding:18px 20px;box-shadow:var(--sh-xs)}
+.kpi-card.accent{border-color:var(--red-border);background:var(--red-soft)}
+.kpi-label{font-size:11px;font-weight:500;color:var(--g400);letter-spacing:.3px;margin-bottom:10px}
+.kpi-value{font-size:23px;font-weight:600;color:var(--g800);letter-spacing:-.5px;line-height:1}
+.kpi-card.accent .kpi-value{color:var(--red)}
+.kpi-footer{margin-top:8px;font-size:11px;color:var(--g400)}
+/* Charts */
+.chart-grid{display:grid;gap:14px;margin-bottom:24px}
+.chart-grid.c2{grid-template-columns:1fr 1fr}
+.chart-grid.c1{grid-template-columns:1fr}
+.chart-card{background:var(--white);border:1px solid var(--g100);border-radius:var(--r-md);padding:20px;box-shadow:var(--sh-xs)}
+.chart-card-title{font-size:13px;font-weight:600;color:var(--g700);margin-bottom:4px}
+.chart-card-sub{font-size:11px;color:var(--g400);margin-bottom:16px}
+/* Tables */
+.tcard{background:var(--white);border:1px solid var(--g100);border-radius:var(--r-md);box-shadow:var(--sh-xs);overflow:hidden;margin-bottom:16px}
+.thead{padding:14px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--g100)}
+.thead-title{font-size:13px;font-weight:600;color:var(--g700)}
+.tcount{font-size:11px;color:var(--g400);background:var(--g50);padding:2px 8px;border-radius:20px;border:1px solid var(--g200)}
+.tscroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+thead th{padding:9px 14px;text-align:left;font-size:10.5px;font-weight:600;color:var(--g400);letter-spacing:.4px;text-transform:uppercase;background:var(--g25);border-bottom:1px solid var(--g100);white-space:nowrap}
+tbody td{padding:11px 14px;border-bottom:1px solid var(--g50);color:var(--g700);white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:#FAFAFA}
+.row-dup td{background:#FFFBEB}.row-dup:hover td{background:#FFF8E1}
+.row-paid td{background:#F0FDF8}.row-paid:hover td{background:#E6FDF4}
+.row-alert td{background:#FFF5F5}.row-alert:hover td{background:#FFF0F0}
+/* Badges */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10.5px;font-weight:500;white-space:nowrap}
+.b-red{background:var(--red-soft);color:var(--red-dark)}
+.b-green{background:#ECFDF5;color:#065F46}
+.b-blue{background:#EFF6FF;color:#1E40AF}
+.b-yellow{background:#FFFBEB;color:#92400E}
+.b-gray{background:var(--g100);color:var(--g500)}
+.b-purple{background:#F5F3FF;color:#5B21B6}
+.b-meta{background:#EEF2FF;color:#3730A3}
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:var(--r-sm);font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .15s;font-family:var(--font)}
+.btn-primary{background:var(--red);color:white}.btn-primary:hover{background:var(--red-dark)}
+.btn-ghost{background:transparent;color:var(--g600);border:1px solid var(--g200)}.btn-ghost:hover{background:var(--g50);border-color:var(--g300)}
+.btn-blue{background:#3B82F6;color:white}.btn-blue:hover{background:#2563EB}
+.btn-meta{background:#1877F2;color:white}.btn-meta:hover{background:#0F5FBF}
+.brow{display:flex;gap:8px;margin-bottom:20px;align-items:center;flex-wrap:wrap}
+.bicon{padding:6px 8px;border-radius:6px;background:transparent;color:var(--g400);border:1px solid transparent;cursor:pointer;font-size:12px;transition:all .15s;font-family:var(--font)}
+.bicon:hover{background:var(--g50);border-color:var(--g200);color:var(--g600)}
+.bicon.del:hover{background:var(--red-soft);border-color:var(--red-border);color:var(--red)}
+/* Filter */
+.fbar{background:var(--white);border:1px solid var(--g100);border-radius:var(--r-md);padding:14px 16px;margin-bottom:16px;display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;box-shadow:var(--sh-xs)}
+.fg{display:flex;flex-direction:column;gap:4px;min-width:130px}
+.fg label{font-size:10.5px;font-weight:600;color:var(--g400);letter-spacing:.3px;text-transform:uppercase}
+.fg select,.fg input{border:1px solid var(--g200);border-radius:6px;padding:6px 10px;font-size:12.5px;font-family:var(--font);color:var(--g700);background:var(--white);outline:none;transition:border .15s}
+.fg select:focus,.fg input:focus{border-color:var(--red);box-shadow:0 0 0 3px var(--red-soft)}
+/* Modal */
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.35);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;z-index:200;padding:20px}
+.modal-box{background:var(--white);border-radius:var(--r-lg);box-shadow:0 20px 60px rgba(0,0,0,.18);width:min(680px,100%);max-height:90vh;overflow-y:auto;animation:fadeUp .18s ease}
+.modal-box.wide{width:min(860px,100%)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.mhead{padding:18px 24px 14px;border-bottom:1px solid var(--g100);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--white);z-index:1}
+.mhead-title{font-size:15px;font-weight:600;color:var(--g800)}
+.mclose{width:28px;height:28px;border-radius:6px;border:none;background:var(--g100);color:var(--g500);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all .15s}
+.mclose:hover{background:var(--g200)}
+.mbody{padding:20px 24px}
+.mfoot{padding:14px 24px 18px;border-top:1px solid var(--g100);display:flex;gap:8px;justify-content:flex-end;position:sticky;bottom:0;background:var(--white)}
+/* Form */
+.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:14px}
+.fgroup{display:flex;flex-direction:column;gap:5px}
+.fgroup.full{grid-column:1/-1}
+.flabel{font-size:11px;font-weight:600;color:var(--g500);letter-spacing:.3px;text-transform:uppercase}
+.fgroup input,.fgroup select,.fgroup textarea{border:1px solid var(--g200);border-radius:var(--r-sm);padding:8px 10px;font-size:13px;font-family:var(--font);color:var(--g800);background:var(--white);outline:none;transition:border .15s;width:100%}
+.fgroup input:focus,.fgroup select:focus,.fgroup textarea:focus{border-color:var(--red);box-shadow:0 0 0 3px var(--red-soft)}
+.fgroup textarea{resize:vertical;min-height:68px}
+.fdiv{grid-column:1/-1;height:1px;background:var(--g100);margin:4px 0}
+.fdiv-label{grid-column:1/-1;font-size:10.5px;font-weight:600;color:var(--g400);letter-spacing:.5px;text-transform:uppercase;margin-top:4px}
+/* Funnel */
+.funnel-wrap{display:flex;flex-direction:column;gap:4px;padding:8px 12px}
+.funnel-row{display:grid;grid-template-columns:88px 1fr 54px;align-items:center;gap:12px}
+.funnel-lbl{font-size:12px;color:var(--g500);font-weight:500;text-align:right}
+.funnel-bg{background:var(--g100);border-radius:4px;height:30px;overflow:hidden}
+.funnel-fill{height:100%;background:var(--red);border-radius:4px;display:flex;align-items:center;padding-left:10px;font-size:12px;font-weight:600;color:white;transition:width .5s cubic-bezier(.4,0,.2,1)}
+.funnel-num{font-size:12px;color:var(--g600);font-weight:500}
+.funnel-pct{grid-column:2;font-size:10px;color:var(--red);margin-top:-2px;padding-left:2px}
+/* Settings */
+.set-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
+.set-item{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:6px;background:var(--g25);border:1px solid var(--g100);font-size:13px;color:var(--g700)}
+.set-del{background:none;border:none;color:var(--g300);cursor:pointer;font-size:14px;padding:2px 5px;border-radius:4px;transition:all .15s}
+.set-del:hover{color:var(--red);background:var(--red-soft)}
+/* Report */
+.rep-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:24px}
+.rep-card{background:var(--white);border:1px solid var(--g100);border-radius:var(--r-md);padding:16px 18px;box-shadow:var(--sh-xs)}
+.rep-icon{font-size:18px;margin-bottom:8px}
+.rep-lbl{font-size:10.5px;font-weight:600;color:var(--g400);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px}
+.rep-val{font-size:15px;font-weight:600;color:var(--g800)}
+.rep-hint{font-size:11px;color:var(--g400);margin-top:3px}
+.rep-card.good .rep-val{color:#059669}
+.rep-card.warn .rep-val{color:var(--red)}
+/* Legend */
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:10px}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--g500)}
+.legend-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+
+/* ── CSV IMPORT UI ── */
+.import-section{background:var(--white);border:1px solid var(--g100);border-radius:var(--r-lg);padding:28px;box-shadow:var(--sh-xs);margin-bottom:20px}
+.import-section-title{font-size:14px;font-weight:600;color:var(--g800);margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.import-section-sub{font-size:12px;color:var(--g400);margin-bottom:20px}
+.platform-tabs{display:flex;gap:0;border:1px solid var(--g200);border-radius:var(--r-sm);overflow:hidden;margin-bottom:20px;width:fit-content}
+.ptab{padding:8px 20px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:var(--white);color:var(--g500);transition:all .15s;font-family:var(--font)}
+.ptab:hover{background:var(--g50)}
+.ptab.active-google{background:#4285F4;color:white}
+.ptab.active-meta{background:#1877F2;color:white}
+.drop-zone{border:2px dashed var(--g200);border-radius:var(--r-md);padding:40px 24px;text-align:center;cursor:pointer;transition:all .2s;background:var(--g25)}
+.drop-zone:hover,.drop-zone.over{border-color:var(--red);background:var(--red-soft)}
+.drop-zone-icon{font-size:32px;margin-bottom:10px}
+.drop-zone-title{font-size:14px;font-weight:500;color:var(--g700);margin-bottom:4px}
+.drop-zone-sub{font-size:12px;color:var(--g400)}
+.drop-zone input[type=file]{display:none}
+/* Column mapper */
+.mapper-wrap{background:var(--g25);border:1px solid var(--g200);border-radius:var(--r-md);padding:16px;margin-top:16px}
+.mapper-title{font-size:12px;font-weight:600;color:var(--g600);margin-bottom:12px;text-transform:uppercase;letter-spacing:.4px}
+.mapper-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.mapper-row{display:flex;flex-direction:column;gap:4px}
+.mapper-label{font-size:11px;font-weight:600;color:var(--g500);text-transform:uppercase;letter-spacing:.3px}
+.mapper-select{border:1px solid var(--g200);border-radius:6px;padding:6px 8px;font-size:12px;font-family:var(--font);color:var(--g700);background:var(--white);outline:none}
+.mapper-select:focus{border-color:var(--red)}
+/* Preview table */
+.preview-wrap{margin-top:16px;overflow-x:auto;max-height:280px;overflow-y:auto;border:1px solid var(--g200);border-radius:var(--r-sm)}
+.preview-wrap table thead th{position:sticky;top:0;z-index:1}
+.preview-stats{display:flex;gap:12px;margin-top:12px;flex-wrap:wrap}
+.pstat{background:var(--g50);border:1px solid var(--g200);border-radius:6px;padding:6px 14px;font-size:12px;color:var(--g600)}
+.pstat strong{color:var(--g800)}
+/* Steps */
+.steps{display:flex;align-items:center;gap:0;margin-bottom:24px}
+.step{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:500;color:var(--g400)}
+.step.active{color:var(--red)}
+.step.done{color:#059669}
+.step-num{width:22px;height:22px;border-radius:50%;border:2px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+.step-line{width:32px;height:1px;background:var(--g200);margin:0 4px}
+/* How-to box */
+.howto{background:#F0F7FF;border:1px solid #BFDBFE;border-radius:var(--r-md);padding:16px 20px;margin-bottom:20px}
+.howto-title{font-size:12px;font-weight:600;color:#1D4ED8;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.howto-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+.howto-step{font-size:12px;color:#374151;display:flex;align-items:flex-start;gap:6px;line-height:1.5}
+.howto-step-num{width:18px;height:18px;border-radius:50%;background:#3B82F6;color:white;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--g200);border-radius:10px}
+::-webkit-scrollbar-thumb:hover{background:var(--g300)}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M3 3h7v7H3z"/><path d="M14 3h7v7h-7z"/><path d="M3 14h7v7H3z"/><path d="M14 14h7v7h-7z"/></svg>
+      </div>
+      <div><div class="brand-name">貸款廣告 CRM</div><div class="brand-sub">Ad Performance Suite</div></div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">總覽</div>
+      <button class="nav-item active" onclick="nav('dashboard',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Dashboard</button>
+      <button class="nav-item" onclick="nav('report',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>月報</button>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">資料輸入</div>
+      <button class="nav-item" onclick="nav('import',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>匯入廣告資料</button>
+      <button class="nav-item" onclick="nav('ad-spend',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>廣告花費</button>
+      <button class="nav-item" onclick="nav('crm',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/></svg>CRM 名單</button>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">分析報表</div>
+      <button class="nav-item" onclick="nav('campaign',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg>廣告活動分析</button>
+      <button class="nav-item" onclick="nav('platform',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>平台分析</button>
+      <button class="nav-item" onclick="nav('sales',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0112 0v2"/></svg>業務績效</button>
+      <button class="nav-item" onclick="nav('funnel',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46 22,3"/></svg>漏斗分析</button>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">系統</div>
+      <button class="nav-item" onclick="nav('settings',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>設定</button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="page-title" id="topbar-title">Dashboard</div>
+      <div class="topbar-right">
+        <div class="month-pill">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <select id="global-month" onchange="onMonthChange()"></select>
+        </div>
+        <button class="btn btn-ghost" style="font-size:12px;padding:6px 10px" onclick="exportData()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>匯出
+        </button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div class="page active" id="page-dashboard">
+        <div class="kpi-grid" id="dash-kpis"></div>
+        <div class="chart-grid c2">
+          <div class="chart-card">
+            <div class="chart-card-title">平台花費 vs Lead 數</div>
+            <div class="chart-card-sub">廣告投放效益比較</div>
+            <div class="legend" id="leg-plat"></div>
+            <div style="position:relative;height:200px"><canvas id="c-plat" role="img" aria-label="平台花費與Lead比較圖">平台花費與Lead數量比較</canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-title">廣告活動 撥款 CPA</div>
+            <div class="chart-card-sub">花費 ÷ 實際撥款筆數（非平台 Lead）</div>
+            <div style="position:relative;height:220px"><canvas id="c-cpa" role="img" aria-label="廣告活動CPA排行">廣告活動撥款CPA排行</canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-title">業務送件排行</div>
+            <div class="chart-card-sub">本月各業務送件數</div>
+            <div style="position:relative;height:180px"><canvas id="c-s-sub" role="img" aria-label="業務送件排行">業務送件排行</canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-title">業務撥款金額排行</div>
+            <div class="chart-card-sub">本月各業務撥款總額</div>
+            <div style="position:relative;height:180px"><canvas id="c-s-loan" role="img" aria-label="業務撥款排行">業務撥款排行</canvas></div>
+          </div>
+        </div>
+        <div class="chart-grid c1">
+          <div class="chart-card">
+            <div class="chart-card-title">每月花費 vs 撥款趨勢</div>
+            <div class="chart-card-sub">長期廣告投報追蹤</div>
+            <div class="legend" id="leg-trend"></div>
+            <div style="position:relative;height:180px"><canvas id="c-trend" role="img" aria-label="趨勢圖">每月花費與撥款趨勢</canvas></div>
+          </div>
+        </div>
+        <div class="chart-grid c1">
+          <div class="chart-card">
+            <div class="chart-card-title">名單轉換漏斗</div>
+            <div class="chart-card-sub">廣告曝光 → 實際撥款的完整路徑</div>
+            <div id="dash-funnel" class="funnel-wrap"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- IMPORT PAGE -->
+      <div class="page" id="page-import">
+        <div class="import-section">
+          <div class="import-section-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            從 Google Ads / Meta 匯入廣告資料
+          </div>
+          <div class="import-section-sub">從平台後台下載 CSV → 上傳 → 對應欄位 → 匯入，全程不超過 1 分鐘</div>
+
+          <div class="platform-tabs" id="import-tabs">
+            <button class="ptab active-google" id="tab-google" onclick="switchPlatform('Google')">🔵 Google Ads</button>
+            <button class="ptab" id="tab-meta" onclick="switchPlatform('Meta')">🔷 Meta Ads</button>
+          </div>
+
+          <!-- How to export -->
+          <div class="howto" id="howto-google">
+            <div class="howto-title">📥 如何從 Google Ads 下載報表 CSV</div>
+            <div class="howto-steps">
+              <div class="howto-step"><div class="howto-step-num">1</div><div>登入 Google Ads 後台，點選上方「報表」→「預先定義的報表」</div></div>
+              <div class="howto-step"><div class="howto-step-num">2</div><div>選擇「廣告活動」報表，設定想要的日期範圍</div></div>
+              <div class="howto-step"><div class="howto-step-num">3</div><div>確認包含欄位：日期、廣告活動、曝光次數、點擊次數、費用、轉換次數</div></div>
+              <div class="howto-step"><div class="howto-step-num">4</div><div>點右上角「下載」→ 選 CSV 格式下載</div></div>
+            </div>
+          </div>
+          <div class="howto" id="howto-meta" style="display:none;background:#EEF2FF;border-color:#C7D2FE">
+            <div class="howto-title" style="color:#3730A3">📥 如何從 Meta Ads 下載報表 CSV</div>
+            <div class="howto-steps">
+              <div class="howto-step"><div class="howto-step-num" style="background:#1877F2">1</div><div>登入 Meta 廣告管理員，點選左上「廣告活動」分頁</div></div>
+              <div class="howto-step"><div class="howto-step-num" style="background:#1877F2">2</div><div>設定日期範圍，點右上「欄」調整顯示欄位（加入曝光、點擊、費用、潛在顧客）</div></div>
+              <div class="howto-step"><div class="howto-step-num" style="background:#1877F2">3</div><div>點右上「匯出」→「匯出表格資料」→ CSV</div></div>
+              <div class="howto-step"><div class="howto-step-num" style="background:#1877F2">4</div><div>下載後直接上傳到下方即可，系統會自動辨識 Meta 欄位格式</div></div>
+            </div>
+          </div>
+
+          <!-- Steps -->
+          <div class="steps" id="import-steps">
+            <div class="step active" id="s1"><div class="step-num">1</div>上傳 CSV</div>
+            <div class="step-line"></div>
+            <div class="step" id="s2"><div class="step-num">2</div>對應欄位</div>
+            <div class="step-line"></div>
+            <div class="step" id="s3"><div class="step-num">3</div>預覽確認</div>
+            <div class="step-line"></div>
+            <div class="step" id="s4"><div class="step-num">4</div>匯入完成</div>
+          </div>
+
+          <!-- Step 1: Upload -->
+          <div id="import-step1">
+            <div class="drop-zone" id="drop-zone" onclick="document.getElementById('csv-file').click()" ondragover="dzOver(event)" ondragleave="dzLeave()" ondrop="dzDrop(event)">
+              <div class="drop-zone-icon">📂</div>
+              <div class="drop-zone-title">點擊選擇 CSV 檔案，或拖放到這裡</div>
+              <div class="drop-zone-sub">支援 Google Ads / Meta Ads 匯出的 CSV 格式</div>
+              <input type="file" id="csv-file" accept=".csv" onchange="handleCSV(this)">
+            </div>
+            <div style="margin-top:12px;font-size:11px;color:var(--g400);text-align:center">
+              ⚠️ 如果 CSV 有中文亂碼，請用 Excel 打開後另存為「UTF-8 CSV」再上傳
+            </div>
+          </div>
+
+          <!-- Step 2: Map columns -->
+          <div id="import-step2" style="display:none">
+            <div class="mapper-wrap">
+              <div class="mapper-title">對應欄位（系統已自動偵測，請確認或調整）</div>
+              <div class="mapper-grid" id="mapper-grid"></div>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:14px">
+              <button class="btn btn-ghost" onclick="resetImport()">← 重新上傳</button>
+              <button class="btn btn-primary" onclick="previewImport()">預覽匯入資料 →</button>
+            </div>
+          </div>
+
+          <!-- Step 3: Preview -->
+          <div id="import-step3" style="display:none">
+            <div class="preview-stats" id="preview-stats"></div>
+            <div class="preview-wrap" id="preview-wrap"></div>
+            <div style="display:flex;gap:10px;margin-top:14px">
+              <button class="btn btn-ghost" onclick="showStep(2)">← 返回欄位對應</button>
+              <button class="btn btn-primary" onclick="confirmImport()" id="btn-confirm-import">✅ 確認匯入</button>
+            </div>
+          </div>
+
+          <!-- Step 4: Done -->
+          <div id="import-step4" style="display:none;text-align:center;padding:32px 20px">
+            <div style="font-size:48px;margin-bottom:12px">✅</div>
+            <div style="font-size:16px;font-weight:600;color:var(--g800);margin-bottom:6px" id="import-done-msg">匯入成功！</div>
+            <div style="font-size:13px;color:var(--g400);margin-bottom:20px" id="import-done-sub"></div>
+            <div style="display:flex;gap:10px;justify-content:center">
+              <button class="btn btn-ghost" onclick="resetImport()">再次匯入</button>
+              <button class="btn btn-primary" onclick="nav('ad-spend',document.querySelector('.nav-item:nth-child(2))'))">查看廣告花費 →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent imports log -->
+        <div class="tcard">
+          <div class="thead"><div class="thead-title">匯入紀錄</div><span class="tcount" id="import-log-count">0 次</span></div>
+          <div class="tscroll">
+            <table>
+              <thead><tr><th>匯入時間</th><th>平台</th><th>筆數</th><th>日期範圍</th><th>狀態</th></tr></thead>
+              <tbody id="import-log-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- AD SPEND -->
+      <div class="page" id="page-ad-spend">
+        <div class="brow">
+          <button class="btn btn-primary" onclick="openModal('ad')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>手動新增
+          </button>
+          <button class="btn btn-ghost" onclick="nav('import',document.querySelector('[onclick=\"nav(\'import\',this)\"]'))">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>CSV 匯入
+          </button>
+        </div>
+        <div class="fbar">
+          <div class="fg"><label>月份</label><select id="ad-fm" onchange="renderAds()"><option value="">全部</option></select></div>
+          <div class="fg"><label>平台</label><select id="ad-fp" onchange="renderAds()"><option value="">全部</option></select></div>
+        </div>
+        <div class="tcard">
+          <div class="thead"><div class="thead-title">廣告花費記錄</div><span class="tcount" id="ad-count">0 筆</span></div>
+          <div class="tscroll">
+            <table>
+              <thead><tr><th>日期</th><th>月份</th><th>平台</th><th>廣告活動</th><th>廣告組</th><th>素材</th><th>花費</th><th>曝光</th><th>點擊</th><th>平台Lead</th><th>CPC</th><th>CPL</th><th>來源</th><th></th></tr></thead>
+              <tbody id="ad-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- CRM -->
+      <div class="page" id="page-crm">
+        <div class="brow">
+          <button class="btn btn-primary" onclick="openModal('crm')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>新增客戶
+          </button>
+          <div style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <span class="badge b-yellow">■ 重複名單</span>
+            <span class="badge b-green">■ 已撥款</span>
+            <span class="badge b-red">■ 未聯絡逾期</span>
+          </div>
+        </div>
+        <div class="fbar">
+          <div class="fg"><label>平台</label><select id="crm-fp" onchange="renderCRM()"><option value="">全部</option></select></div>
+          <div class="fg"><label>業務</label><select id="crm-fs" onchange="renderCRM()"><option value="">全部</option></select></div>
+          <div class="fg"><label>月份</label><select id="crm-fm" onchange="renderCRM()"><option value="">全部</option></select></div>
+          <div class="fg"><label>狀態</label>
+            <select id="crm-fst" onchange="renderCRM()">
+              <option value="">全部</option><option value="dup">重複</option><option value="sub">已送件</option><option value="apr">已核准</option><option value="loan">已撥款</option>
+            </select>
+          </div>
+        </div>
+        <div class="tcard">
+          <div class="thead"><div class="thead-title">CRM 客戶名單</div><span class="tcount" id="crm-count">0 筆</span></div>
+          <div class="tscroll">
+            <table>
+              <thead><tr><th>建立日期</th><th>姓名</th><th>後四碼</th><th>LINE</th><th>平台</th><th>廣告活動</th><th>業務</th><th>狀態</th><th>聯絡</th><th>接通</th><th>需求</th><th>送件</th><th>核准</th><th>撥款</th><th>撥款金額</th><th>產品</th><th></th></tr></thead>
+              <tbody id="crm-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- CAMPAIGN -->
+      <div class="page" id="page-campaign">
+        <div class="fbar">
+          <div class="fg"><label>月份</label><select id="camp-fm" onchange="renderCampaign()"><option value="">全部</option></select></div>
+          <div class="fg"><label>平台</label><select id="camp-fp" onchange="renderCampaign()"><option value="">全部</option></select></div>
+        </div>
+        <div class="tcard">
+          <div class="thead"><div class="thead-title">廣告活動分析</div><span class="tcount" id="camp-count">0 筆</span></div>
+          <div class="tscroll">
+            <table>
+              <thead><tr><th>月份</th><th>平台</th><th>廣告活動</th><th>花費</th><th>平台Lead</th><th>CRM名單</th><th>有效名單</th><th>送件</th><th>核准</th><th>撥款</th><th>撥款金額</th><th>CPL</th><th>送件CPA</th><th>核准CPA</th><th>撥款CPA</th><th>ROAS</th></tr></thead>
+              <tbody id="camp-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- PLATFORM -->
+      <div class="page" id="page-platform">
+        <div class="fbar"><div class="fg"><label>月份</label><select id="plat-fm" onchange="renderPlatform()"><option value="">全部</option></select></div></div>
+        <div class="tcard">
+          <div class="thead"><div class="thead-title">平台分析</div></div>
+          <div class="tscroll">
+            <table>
+              <thead><tr><th>月份</th><th>平台</th><th>花費</th><th>平台Lead</th><th>CRM名單</th><th>有效名單</th><th>送件</th><th>核准</th><th>撥款</th><th>撥款金額</th><th>CPL</th><th>送件CPA</th><th>核准CPA</th><th>撥款CPA</th><th>送件率</th><th>核准率</th><th>撥款率</th><th>ROAS</th></tr></thead>
+              <tbody id="plat-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SALES -->
+      <div class="page" id="page-sales">
+        <div class="fbar"><div class="fg"><label>月份</label><select id="sales-fm" onchange="renderSales()"><option value="">全部</option></select></div></div>
+        <div class="tcard">
+          <div class="thead"><div class="thead-title">業務績效</div></div>
+          <div class="tscroll">
+            <table>
+              <thead><tr><th>月份</th><th>業務</th><th>分配名單</th><th>有效名單</th><th>已聯絡</th><th>接通</th><th>有需求</th><th>送件</th><th>核准</th><th>撥款</th><th>撥款金額</th><th>聯絡率</th><th>接通率</th><th>需求率</th><th>送件率</th><th>核准率</th><th>撥款率</th></tr></thead>
+              <tbody id="sales-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- FUNNEL -->
+      <div class="page" id="page-funnel">
+        <div class="fbar">
+          <div class="fg"><label>月份</label><select id="fun-fm" onchange="renderFunnelPage()"><option value="">全部</option></select></div>
+          <div class="fg"><label>平台</label><select id="fun-fp" onchange="renderFunnelPage()"><option value="">全部</option></select></div>
+        </div>
+        <div class="chart-grid c1">
+          <div class="chart-card">
+            <div class="chart-card-title">名單轉換漏斗</div>
+            <div class="chart-card-sub">從廣告曝光到實際撥款</div>
+            <div id="funnel-main" class="funnel-wrap"></div>
+          </div>
+        </div>
+        <div class="tcard">
+          <div class="thead"><div class="thead-title">漏斗數據明細</div></div>
+          <div class="tscroll">
+            <table>
+              <thead><tr><th>平台</th><th>月份</th><th>平台Lead</th><th>CRM名單</th><th>有效名單</th><th>已聯絡</th><th>接通</th><th>有需求</th><th>送件</th><th>核准</th><th>撥款</th><th>Lead→名單</th><th>名單→送件</th><th>送件→核准</th><th>核准→撥款</th></tr></thead>
+              <tbody id="funnel-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- REPORT -->
+      <div class="page" id="page-report"><div id="report-body"></div></div>
+
+      <!-- SETTINGS -->
+      <div class="page" id="page-settings">
+        <div style="font-size:14px;font-weight:600;color:var(--g800);margin-bottom:16px">下拉選單設定</div>
+        <div class="set-grid" id="settings-main"></div>
+        <div style="font-size:14px;font-weight:600;color:var(--g800);margin:28px 0 16px">資料管理</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-ghost" onclick="exportData()">📤 匯出備份 JSON</button>
+          <button class="btn btn-ghost" onclick="document.getElementById('imp').click()">📥 匯入備份 JSON</button>
+          <input type="file" id="imp" accept=".json" style="display:none" onchange="importBackup(this)">
+          <button class="btn btn-ghost" style="color:var(--red);border-color:var(--red-border)" onclick="if(confirm('確定清除所有資料？'))clearData()">🗑 清除所有資料</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+<div id="modal-root"></div>
+
+<script>
+// ═══════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════
+const SK='loanCRM_v3';
+let DB={
+  ads:[],crm:[],importLogs:[],
+  settings:{
+    platforms:['Google','Meta','LINE','自然搜尋','轉介紹','其他'],
+    salesList:['業務A','業務B','業務C','業務D'],
+    products:['信貸','二胎','債務整合','房貸','企業貸款','其他'],
+    yesno:['是','否','待確認'],
+    failReasons:['聯絡不上','條件不符','客戶取消','額度不足','利率不接受','資料未補齊','重複名單','其他']
+  }
+};
+function loadDB(){
+  try{const d=localStorage.getItem(SK);if(d){const p=JSON.parse(d);DB.ads=p.ads||[];DB.crm=p.crm||[];DB.importLogs=p.importLogs||[];if(p.settings)Object.assign(DB.settings,p.settings);}}catch(e){}
+  if(!DB.ads.length)seedData();
+}
+function saveDB(){try{localStorage.setItem(SK,JSON.stringify(DB));}catch(e){}}
+
+function seedData(){
+  DB.ads=[
+    {id:1,date:'2026-06-18',platform:'Google',campaign:'需求開發-2026-06-18',adGroup:'影片B',creative:'影片1',spend:5899,impression:27545,click:5635,platformLead:18,note:'',source:'manual'},
+    {id:2,date:'2026-06-24',platform:'Google',campaign:'需求開發-2026-06-24',adGroup:'影片B',creative:'影片2',spend:2529,impression:10339,click:2518,platformLead:2,note:'',source:'manual'},
+    {id:3,date:'2026-06-11',platform:'Meta',campaign:'潛在客戶',adGroup:'',creative:'',spend:11451,impression:11498,click:0,platformLead:91,note:'',source:'manual'},
+    {id:4,date:'2026-06-09',platform:'Meta',campaign:'訊息',adGroup:'',creative:'',spend:12991,impression:10910,click:0,platformLead:76,note:'',source:'manual'},
+    {id:5,date:'2026-05-15',platform:'Google',campaign:'品牌搜尋-2026-05',adGroup:'關鍵字A',creative:'文字1',spend:7820,impression:34200,click:6100,platformLead:25,note:'',source:'manual'},
+    {id:6,date:'2026-05-10',platform:'Meta',campaign:'再行銷-2026-05',adGroup:'',creative:'',spend:9300,impression:18700,click:0,platformLead:44,note:'',source:'manual'},
+  ];
+  const ns=['王小明','李大華','陳美麗','張志強','林芳芳','黃建國','劉麗珍','吳世豪','蔡志明','楊淑芬','謝文彬','鄭雅婷','許俊傑','葉淑惠','賴建宏','詹美華','鍾志偉','盧玉蘭','江建宏','施雅雯'];
+  const ph=['0912345678','0923456789','0934567890','0945678901','0956789012','0967890123','0978901234','0989012345','0912345679','0923456780','0934567891','0945678902','0956789013','0967890124','0978901235','0989012346','0912345680','0923456781','0934567892','0945678903'];
+  const li=['L001','L002','L003','L004','L005','L006','L007','L008','','','','L012','','L014','','','L017','','','L020'];
+  const sp=['業務A','業務B','業務C','業務D'];let id=1;
+  for(let i=0;i<18;i++) DB.crm.push({id:id++,createDate:'2026-06-18',platform:'Google',campaign:'需求開發-2026-06-18',adGroup:'影片1',creative:'影片1',keyword:'低利貸款',name:ns[i%20],phone:ph[i%20],lineId:li[i%20],email:'',sales:sp[i%4],contacted:'是',connected:i<12?'是':'否',hasNeed:i<8?'是':'否',submitted:i<3?'是':'否',submitDate:i<3?'2026-06-20':'',approved:i<2?'是':'否',approveDate:i<2?'2026-06-22':'',loaned:i===0?'是':'否',loanDate:i===0?'2026-06-25':'',loanAmount:i===0?850000:0,product:i===0?'信貸':'',failReason:'',note:''});
+  DB.crm.push({id:id++,createDate:'2026-06-24',platform:'Google',campaign:'需求開發-2026-06-24',adGroup:'影片2',creative:'影片2',keyword:'',name:ns[0],phone:ph[0],lineId:li[0],email:'',sales:'業務A',contacted:'是',connected:'是',hasNeed:'是',submitted:'否',submitDate:'',approved:'否',approveDate:'',loaned:'否',loanDate:'',loanAmount:0,product:'',failReason:'重複名單',note:'重複'});
+  DB.crm.push({id:id++,createDate:'2026-06-24',platform:'Google',campaign:'需求開發-2026-06-24',adGroup:'影片2',creative:'影片2',keyword:'',name:ns[18],phone:ph[18],lineId:'',email:'',sales:'業務B',contacted:'否',connected:'否',hasNeed:'否',submitted:'否',submitDate:'',approved:'否',approveDate:'',loaned:'否',loanDate:'',loanAmount:0,product:'',failReason:'',note:''});
+  for(let i=0;i<3;i++) DB.crm.push({id:id++,createDate:'2026-06-09',platform:'Meta',campaign:'訊息',adGroup:'',creative:'',keyword:'',name:ns[i+5],phone:ph[i+10],lineId:'',email:'',sales:sp[i%4],contacted:'是',connected:'是',hasNeed:'是',submitted:'是',submitDate:'2026-06-15',approved:i===0?'是':'否',approveDate:i===0?'2026-06-18':'',loaned:i===0?'是':'否',loanDate:i===0?'2026-06-20':'',loanAmount:i===0?1200000:0,product:i===0?'二胎':'',failReason:i>0?'條件不符':'',note:''});
+  DB.crm.push({id:id++,createDate:'2026-06-11',platform:'Meta',campaign:'潛在客戶',adGroup:'',creative:'',keyword:'',name:ns[19],phone:ph[19],lineId:'',email:'',sales:'業務D',contacted:'是',connected:'是',hasNeed:'是',submitted:'是',submitDate:'2026-06-16',approved:'否',approveDate:'',loaned:'否',loanDate:'',loanAmount:0,product:'',failReason:'條件不符',note:''});
+  for(let i=0;i<6;i++) DB.crm.push({id:id++,createDate:'2026-05-15',platform:'Google',campaign:'品牌搜尋-2026-05',adGroup:'關鍵字A',creative:'文字1',keyword:'貸款',name:ns[(i+8)%20],phone:ph[(i+8)%20],lineId:'',email:'',sales:sp[i%4],contacted:'是',connected:'是',hasNeed:i<4?'是':'否',submitted:i<2?'是':'否',submitDate:i<2?'2026-05-20':'',approved:i<1?'是':'否',approveDate:i<1?'2026-05-25':'',loaned:i===0?'是':'否',loanDate:i===0?'2026-05-28':'',loanAmount:i===0?680000:0,product:i===0?'信貸':'',failReason:'',note:''});
+  markDups();saveDB();
+}
+function markDups(){
+  const pm={},lm={};DB.crm.forEach(r=>r.isDuplicate=false);
+  DB.crm.forEach(r=>{if(r.phone){if(pm[r.phone])r.isDuplicate=true;else pm[r.phone]=r.id;}if(r.lineId){if(lm[r.lineId])r.isDuplicate=true;else lm[r.lineId]=r.id;}});
+}
+
+// ═══════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════
+const gm=s=>{if(!s)return'';const d=new Date(s);return d.getFullYear()+'/'+(''+(d.getMonth()+1)).padStart(2,'0')};
+const l4=p=>p?p.slice(-4):'—';
+const fm=n=>Math.round(n||0).toLocaleString('zh-TW');
+const pct=(a,b)=>b?((a/b)*100).toFixed(1)+'%':'—';
+const cpa=(s,n)=>n&&n>0?'$'+(s/n).toFixed(0):'—';
+const dash=v=>v||'—';
+function getMonths(){const ms=new Set();DB.ads.forEach(a=>ms.add(gm(a.date)));DB.crm.forEach(c=>ms.add(gm(c.createDate)));return[...ms].filter(Boolean).sort().reverse();}
+function fillSel(id,months,withAll=true){const el=document.getElementById(id);if(!el)return;const cur=el.value;el.innerHTML=(withAll?'<option value="">全部月份</option>':'')+months.map(m=>`<option value="${m}">${m}</option>`).join('');if(cur&&[...el.options].some(o=>o.value===cur))el.value=cur;}
+
+function platBadge(p){
+  if(p==='Google')return`<span class="badge b-blue">${p}</span>`;
+  if(p==='Meta')return`<span class="badge b-meta">${p}</span>`;
+  return`<span class="badge b-gray">${p}</span>`;
+}
+function statusBadge(c){
+  if(c.loaned==='是')return`<span class="badge b-green">✓ 撥款</span>`;
+  if(c.approved==='是')return`<span class="badge b-blue">✓ 核准</span>`;
+  if(c.submitted==='是')return`<span class="badge b-purple">送件中</span>`;
+  if(c.isDuplicate)return`<span class="badge b-yellow">重複</span>`;
+  return`<span class="badge b-gray">進行中</span>`;
+}
+function yn(v){if(v==='是')return`<span style="color:#059669;font-weight:600">✓</span>`;if(v==='否')return`<span style="color:var(--g300)">—</span>`;return`<span style="color:var(--g400);font-size:11px">${v||'—'}</span>`;}
+
+// ═══════════════════════════════════════════
+// NAV
+// ═══════════════════════════════════════════
+const pageTitles={dashboard:'Dashboard',report:'月報摘要','ad-spend':'廣告花費',crm:'CRM 客戶名單',campaign:'廣告活動分析',platform:'平台分析',sales:'業務績效',funnel:'漏斗分析',settings:'設定',import:'匯入廣告資料'};
+function nav(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(btn)btn.classList.add('active');
+  document.getElementById('topbar-title').textContent=pageTitles[id]||'';
+  if(id==='dashboard')renderDashboard();
+  else if(id==='ad-spend')renderAds();
+  else if(id==='crm')renderCRM();
+  else if(id==='campaign')renderCampaign();
+  else if(id==='platform')renderPlatform();
+  else if(id==='sales')renderSales();
+  else if(id==='funnel')renderFunnelPage();
+  else if(id==='report')renderReport();
+  else if(id==='settings')renderSettings();
+  else if(id==='import')renderImportLog();
+}
+function onMonthChange(){
+  const active=document.querySelector('.page.active');if(!active)return;
+  const pid=active.id.replace('page-','');
+  if(pid==='dashboard')renderDashboard();
+  else if(pid==='report')renderReport();
+}
+
+// ═══════════════════════════════════════════
+// CSV IMPORT ENGINE
+// ═══════════════════════════════════════════
+let csvState={platform:'Google',rawHeaders:[],rows:[],mappings:{}};
+
+// Known column name aliases for auto-detection
+const COL_ALIASES={
+  date:['日期','date','day','report date','報表日期','時間'],
+  campaign:['廣告活動','campaign','campaign name','廣告活動名稱'],
+  adGroup:['廣告組合','ad set','ad set name','廣告組','adgroup','ad group'],
+  creative:['廣告','ad name','廣告名稱','素材'],
+  spend:['費用','spend','cost','amount spent','花費','支出','金額','cost (twd)','費用（twd）'],
+  impression:['曝光次數','impressions','曝光','展示次數'],
+  click:['點擊次數','clicks','點擊','link clicks'],
+  platformLead:['轉換次數','conversions','leads','潛在顧客','leads (form)','表單leads','lead','form leads','轉換','conversions（lead）'],
+};
+
+function detectMapping(headers){
+  const m={};
+  const hLower=headers.map(h=>h.toLowerCase().trim());
+  Object.keys(COL_ALIASES).forEach(field=>{
+    const aliases=COL_ALIASES[field];
+    for(const alias of aliases){
+      const idx=hLower.findIndex(h=>h.includes(alias.toLowerCase()));
+      if(idx>=0){m[field]=headers[idx];break;}
+    }
+    if(!m[field])m[field]='';
+  });
+  return m;
+}
+
+function switchPlatform(p){
+  csvState.platform=p;
+  document.getElementById('tab-google').className='ptab'+(p==='Google'?' active-google':'');
+  document.getElementById('tab-meta').className='ptab'+(p==='Meta'?' active-meta':'');
+  document.getElementById('howto-google').style.display=p==='Google'?'':'none';
+  document.getElementById('howto-meta').style.display=p==='Meta'?'':'none';
+}
+
+function dzOver(e){e.preventDefault();document.getElementById('drop-zone').classList.add('over');}
+function dzLeave(){document.getElementById('drop-zone').classList.remove('over');}
+function dzDrop(e){e.preventDefault();dzLeave();const f=e.dataTransfer.files[0];if(f)processCSVFile(f);}
+
+function handleCSV(input){const f=input.files[0];if(f)processCSVFile(f);}
+
+function processCSVFile(file){
+  const reader=new FileReader();
+  reader.onload=e=>{
+    let text=e.target.result;
+    // Try to detect and handle BOM
+    if(text.charCodeAt(0)===0xFEFF)text=text.slice(1);
+    const lines=text.split(/\r?\n/).filter(l=>l.trim());
+    if(lines.length<2){alert('CSV 內容不足，請確認檔案格式');return;}
+    // Find actual header row (skip Google Ads summary lines at top)
+    let headerIdx=0;
+    for(let i=0;i<Math.min(10,lines.length);i++){
+      const low=lines[i].toLowerCase();
+      if(low.includes('campaign')||low.includes('廣告活動')||low.includes('date')||low.includes('日期')){headerIdx=i;break;}
+    }
+    const headers=parseCSVLine(lines[headerIdx]);
+    const rows=[];
+    for(let i=headerIdx+1;i<lines.length;i++){
+      const row=parseCSVLine(lines[i]);
+      if(row.length>=2&&row.some(c=>c.trim()))rows.push(row);
+    }
+    csvState.rawHeaders=headers;
+    csvState.rows=rows;
+    csvState.mappings=detectMapping(headers);
+    showStep(2);
+    buildMapper();
+  };
+  reader.readAsText(file,'UTF-8');
+}
+
+function parseCSVLine(line){
+  const result=[];let cur='';let inQ=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(c==='"'){if(inQ&&line[i+1]==='"'){cur+='"';i++;}else inQ=!inQ;}
+    else if(c===','&&!inQ){result.push(cur.trim());cur='';}
+    else cur+=c;
+  }
+  result.push(cur.trim());
+  return result;
+}
+
+function buildMapper(){
+  const fields=[
+    {key:'date',label:'日期',required:true},
+    {key:'campaign',label:'廣告活動',required:true},
+    {key:'adGroup',label:'廣告組合',required:false},
+    {key:'creative',label:'素材／廣告',required:false},
+    {key:'spend',label:'花費 (元)',required:true},
+    {key:'impression',label:'曝光次數',required:false},
+    {key:'click',label:'點擊次數',required:false},
+    {key:'platformLead',label:'平台 Lead 數',required:false},
+  ];
+  const opts=['<option value="">(不匯入)</option>',...csvState.rawHeaders.map(h=>`<option value="${h}">${h}</option>`)].join('');
+  document.getElementById('mapper-grid').innerHTML=fields.map(f=>`
+    <div class="mapper-row">
+      <div class="mapper-label">${f.label}${f.required?' <span style="color:var(--red)">*</span>':''}</div>
+      <select class="mapper-select" id="map-${f.key}" onchange="csvState.mappings['${f.key}']=this.value">
+        ${csvState.rawHeaders.map(h=>`<option value="${h}"${csvState.mappings[f.key]===h?' selected':''}>${h}</option>`).join('')}
+        ${f.required?'':'<option value=""'+(csvState.mappings[f.key]?'':' selected')+'>(不匯入)</option>'}
+      </select>
+    </div>`).join('');
+}
+
+function parseMoney(v){
+  if(!v)return 0;
+  return parseFloat(v.toString().replace(/[^0-9.\-]/g,''))||0;
+}
+
+function previewImport(){
+  const m=csvState.mappings;
+  if(!m.date||!m.campaign||!m.spend){alert('請至少對應：日期、廣告活動、花費 三個欄位');return;}
+  const hIdx={};csvState.rawHeaders.forEach((h,i)=>hIdx[h]=i);
+  const preview=[];
+  csvState.rows.forEach(row=>{
+    const get=field=>m[field]?row[hIdx[m[field]]]||'':'';
+    const dateRaw=get('date');
+    const spendRaw=get('spend');
+    if(!dateRaw||!spendRaw)return;
+    // Normalize date formats: YYYY/MM/DD, YYYY-MM-DD, MM/DD/YYYY, DD/MM/YYYY
+    let dateNorm=dateRaw.replace(/\//g,'-');
+    if(/^\d{1,2}-\d{1,2}-\d{4}$/.test(dateNorm)){const p=dateNorm.split('-');dateNorm=p[2]+'-'+p[0].padStart(2,'0')+'-'+p[1].padStart(2,'0');}
+    else if(/^\d{4}-\d{1,2}-\d{1,2}$/.test(dateNorm)){const p=dateNorm.split('-');dateNorm=p[0]+'-'+p[1].padStart(2,'0')+'-'+p[2].padStart(2,'0');}
+    preview.push({
+      date:dateNorm,month:gm(dateNorm),
+      platform:csvState.platform,
+      campaign:get('campaign'),
+      adGroup:get('adGroup'),
+      creative:get('creative'),
+      spend:parseMoney(spendRaw),
+      impression:parseMoney(get('impression')),
+      click:parseMoney(get('click')),
+      platformLead:parseMoney(get('platformLead')),
+      source:'csv-'+csvState.platform.toLowerCase()
+    });
+  });
+  csvState.preview=preview;
+  if(!preview.length){alert('無法解析任何有效資料，請確認欄位對應是否正確');return;}
+  const minD=preview.reduce((a,b)=>a.date<b.date?a:b).date;
+  const maxD=preview.reduce((a,b)=>a.date>b.date?a:b).date;
+  const totalSpend=preview.reduce((s,r)=>s+r.spend,0);
+  document.getElementById('preview-stats').innerHTML=`
+    <div class="pstat">筆數：<strong>${preview.length}</strong></div>
+    <div class="pstat">日期範圍：<strong>${minD} ～ ${maxD}</strong></div>
+    <div class="pstat">總花費：<strong>$${fm(totalSpend)}</strong></div>
+    <div class="pstat">平台：<strong>${csvState.platform}</strong></div>`;
+  document.getElementById('preview-wrap').innerHTML=`<table>
+    <thead><tr><th>日期</th><th>月份</th><th>平台</th><th>廣告活動</th><th>廣告組</th><th>花費</th><th>曝光</th><th>點擊</th><th>Lead</th></tr></thead>
+    <tbody>${preview.slice(0,50).map(r=>`<tr>
+      <td>${r.date}</td><td>${r.month}</td><td>${platBadge(r.platform)}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis">${r.campaign}</td>
+      <td>${r.adGroup||'—'}</td>
+      <td>$${fm(r.spend)}</td><td>${fm(r.impression)||'—'}</td>
+      <td>${fm(r.click)||'—'}</td><td>${r.platformLead||'—'}</td>
+    </tr>`).join('')}
+    ${preview.length>50?`<tr><td colspan="9" style="text-align:center;color:var(--g400);font-style:italic">… 僅顯示前 50 筆，共 ${preview.length} 筆</td></tr>`:''}
+    </tbody></table>`;
+  showStep(3);
+}
+
+function confirmImport(){
+  const pr=csvState.preview;if(!pr||!pr.length)return;
+  let added=0,skipped=0;
+  pr.forEach(r=>{
+    const dup=DB.ads.find(a=>a.date===r.date&&a.platform===r.platform&&a.campaign===r.campaign&&Math.abs(a.spend-r.spend)<1);
+    if(dup){skipped++;return;}
+    DB.ads.push({...r,id:Date.now()+Math.random(),note:''});
+    added++;
+  });
+  const minD=pr.reduce((a,b)=>a.date<b.date?a:b).date;
+  const maxD=pr.reduce((a,b)=>a.date>b.date?a:b).date;
+  DB.importLogs.unshift({time:new Date().toLocaleString('zh-TW'),platform:csvState.platform,count:added,skipped,range:minD+' ~ '+maxD,status:'success'});
+  saveDB();
+  document.getElementById('import-done-msg').textContent=`成功匯入 ${added} 筆廣告資料！`;
+  document.getElementById('import-done-sub').textContent=`${skipped>0?'略過 '+skipped+' 筆重複資料，':''}資料已儲存至廣告花費。`;
+  showStep(4);
+}
+
+function showStep(n){
+  [1,2,3,4].forEach(i=>{
+    document.getElementById('import-step'+i).style.display=i===n?'':'none';
+    const s=document.getElementById('s'+i);
+    if(s){s.className='step'+(i<n?' done':i===n?' active':'');}
+  });
+}
+
+function resetImport(){
+  csvState={platform:csvState.platform,rawHeaders:[],rows:[],mappings:{}};
+  document.getElementById('csv-file').value='';
+  showStep(1);
+}
+
+function renderImportLog(){
+  document.getElementById('import-log-count').textContent=DB.importLogs.length+' 次';
+  document.getElementById('import-log-tbody').innerHTML=DB.importLogs.length?DB.importLogs.map(l=>`<tr>
+    <td>${l.time}</td><td>${platBadge(l.platform)}</td>
+    <td><strong>${l.count}</strong> 筆${l.skipped?` <span style="color:var(--g400);font-size:11px">(略過${l.skipped})</span>`:''}</td>
+    <td style="font-size:12px;color:var(--g500)">${l.range||'—'}</td>
+    <td><span class="badge b-green">✓ 成功</span></td>
+  </tr>`).join(''):'<tr><td colspan="5" style="text-align:center;color:var(--g400);padding:24px">尚無匯入紀錄</td></tr>';
+}
+
+// ═══════════════════════════════════════════
+// CHARTS
+// ═══════════════════════════════════════════
+const charts={};
+function dc(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+const RED='#E0281A',BLUE='#3B82F6',GREEN='#059669';
+
+function renderDashboard(){
+  fillSel('global-month',getMonths());
+  const mth=document.getElementById('global-month').value;
+  const ads=DB.ads.filter(a=>!mth||gm(a.date)===mth);
+  const crm=DB.crm.filter(c=>!mth||gm(c.createDate)===mth);
+  const spend=ads.reduce((s,a)=>s+a.spend,0);
+  const lead=ads.reduce((s,a)=>s+a.platformLead,0);
+  const valid=crm.filter(c=>!c.isDuplicate);
+  const sub=crm.filter(c=>c.submitted==='是');
+  const apr=crm.filter(c=>c.approved==='是');
+  const loan=crm.filter(c=>c.loaned==='是');
+  const lamt=loan.reduce((s,c)=>s+c.loanAmount,0);
+  document.getElementById('dash-kpis').innerHTML=[
+    {l:'本月總花費',v:'$'+fm(spend),f:'廣告投入'},
+    {l:'平台 Lead',v:fm(lead),f:'後台數字'},
+    {l:'CRM 名單',v:fm(crm.length),f:'有效：'+valid.length},
+    {l:'送件',v:fm(sub.length),f:'送件率 '+pct(sub.length,valid.length)},
+    {l:'核准',v:fm(apr.length),f:'核准率 '+pct(apr.length,sub.length)},
+    {l:'撥款筆數',v:fm(loan.length),f:'撥款率 '+pct(loan.length,apr.length),a:true},
+    {l:'撥款金額',v:'$'+fm(lamt),f:'ROAS '+(spend?(lamt/spend).toFixed(2)+'x':'—'),a:true},
+    {l:'CPL',v:lead?'$'+Math.round(spend/lead):'—',f:'花費÷Lead'},
+    {l:'送件CPA',v:sub.length?'$'+Math.round(spend/sub.length):'—',f:'花費÷送件'},
+    {l:'撥款CPA',v:loan.length?'$'+Math.round(spend/loan.length):'—',f:'花費÷撥款'},
+  ].map(k=>`<div class="kpi-card${k.a?' accent':''}"><div class="kpi-label">${k.l}</div><div class="kpi-value">${k.v}</div><div class="kpi-footer">${k.f}</div></div>`).join('');
+
+  const plats=[...new Set(DB.ads.map(a=>a.platform))];
+  document.getElementById('leg-plat').innerHTML=`<div class="legend-item"><span class="legend-dot" style="background:${RED}"></span>花費(左)</div><div class="legend-item"><span class="legend-dot" style="background:${BLUE}"></span>Lead(右)</div>`;
+  dc('c-plat');charts['c-plat']=new Chart(document.getElementById('c-plat'),{type:'bar',data:{labels:plats,datasets:[{label:'花費',data:plats.map(p=>ads.filter(a=>a.platform===p).reduce((s,a)=>s+a.spend,0)),backgroundColor:RED,borderRadius:6,yAxisID:'y'},{label:'Lead',data:plats.map(p=>ads.filter(a=>a.platform===p).reduce((s,a)=>s+a.platformLead,0)),backgroundColor:BLUE,borderRadius:6,yAxisID:'y2'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{callback:v=>'$'+(v/1000).toFixed(0)+'K'},grid:{color:'#f0f0f0'}},y2:{type:'linear',position:'right',beginAtZero:true,grid:{drawOnChartArea:false}}}}});
+
+  const camps=[...new Set(ads.map(a=>a.campaign))];
+  const cData=camps.map(c=>{const s=ads.filter(a=>a.campaign===c).reduce((x,a)=>x+a.spend,0);const l=crm.filter(x=>x.campaign===c&&x.loaned==='是').length;return{c:c.substring(0,14),cpa:l?Math.round(s/l):null};}).filter(x=>x.cpa).sort((a,b)=>a.cpa-b.cpa).slice(0,6);
+  dc('c-cpa');charts['c-cpa']=new Chart(document.getElementById('c-cpa'),{type:'bar',data:{labels:cData.map(x=>x.c),datasets:[{label:'撥款CPA',data:cData.map(x=>x.cpa),backgroundColor:cData.map((_,i)=>i===0?GREEN:RED),borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{callback:v=>'$'+v.toLocaleString()},grid:{color:'#f0f0f0'}},y:{grid:{display:false}}}}});
+
+  const sps=[...new Set(crm.map(c=>c.sales).filter(Boolean))];
+  dc('c-s-sub');charts['c-s-sub']=new Chart(document.getElementById('c-s-sub'),{type:'bar',data:{labels:sps,datasets:[{label:'送件',data:sps.map(s=>crm.filter(c=>c.sales===s&&c.submitted==='是').length),backgroundColor:RED,borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1},grid:{color:'#f0f0f0'}},x:{grid:{display:false}}}}});
+  dc('c-s-loan');charts['c-s-loan']=new Chart(document.getElementById('c-s-loan'),{type:'bar',data:{labels:sps,datasets:[{label:'撥款',data:sps.map(s=>crm.filter(c=>c.sales===s&&c.loaned==='是').reduce((x,c)=>x+c.loanAmount,0)),backgroundColor:'#B01E13',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{callback:v=>'$'+(v/10000).toFixed(0)+'萬'},grid:{color:'#f0f0f0'}},x:{grid:{display:false}}}}});
+
+  const allM=getMonths().slice().reverse();
+  document.getElementById('leg-trend').innerHTML=`<div class="legend-item"><span class="legend-dot" style="background:${RED}"></span>廣告花費</div><div class="legend-item"><span class="legend-dot" style="background:${GREEN}"></span>撥款金額</div>`;
+  dc('c-trend');charts['c-trend']=new Chart(document.getElementById('c-trend'),{type:'line',data:{labels:allM,datasets:[{label:'花費',data:allM.map(m=>DB.ads.filter(a=>gm(a.date)===m).reduce((s,a)=>s+a.spend,0)),borderColor:RED,backgroundColor:'rgba(224,40,26,.08)',fill:true,tension:.4,pointBackgroundColor:RED,pointRadius:4},{label:'撥款',data:allM.map(m=>DB.crm.filter(c=>gm(c.createDate)===m&&c.loaned==='是').reduce((s,c)=>s+c.loanAmount,0)),borderColor:GREEN,backgroundColor:'rgba(5,150,105,.06)',fill:true,tension:.4,borderDash:[5,4],pointBackgroundColor:GREEN,pointRadius:4,yAxisID:'y2'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{callback:v=>'$'+(v/1000).toFixed(0)+'K'},grid:{color:'#f0f0f0'}},y2:{type:'linear',position:'right',beginAtZero:true,grid:{drawOnChartArea:false},ticks:{callback:v=>'$'+(v/10000).toFixed(0)+'萬'}}}}});
+
+  renderFunnelDiv('dash-funnel',crm,ads.reduce((s,a)=>s+a.platformLead,0));
+}
+
+function renderFunnelDiv(id,crm,pl){
+  const steps=[{l:'平台 Lead',n:pl},{l:'CRM 名單',n:crm.length},{l:'有效名單',n:crm.filter(c=>!c.isDuplicate).length},{l:'已聯絡',n:crm.filter(c=>c.contacted==='是').length},{l:'接通',n:crm.filter(c=>c.connected==='是').length},{l:'有需求',n:crm.filter(c=>c.hasNeed==='是').length},{l:'送件',n:crm.filter(c=>c.submitted==='是').length},{l:'核准',n:crm.filter(c=>c.approved==='是').length},{l:'撥款',n:crm.filter(c=>c.loaned==='是').length}];
+  const max=steps[0].n||1;
+  const el=document.getElementById(id);if(!el)return;
+  el.innerHTML=steps.map((s,i)=>{const w=Math.max(6,Math.round((s.n/max)*100));const p=i>0&&steps[i-1].n?pct(s.n,steps[i-1].n):'';return`<div class="funnel-row"><div class="funnel-lbl">${s.l}</div><div><div class="funnel-bg"><div class="funnel-fill" style="width:${w}%">${s.n>0?s.n:''}</div></div>${p?`<div class="funnel-pct">↓ ${p}</div>`:''}</div><div class="funnel-num">${s.n}</div></div>`;}).join('');
+}
+
+// ═══════════════════════════════════════════
+// ADS
+// ═══════════════════════════════════════════
+function renderAds(){
+  fillSel('ad-fm',getMonths());
+  const pf=document.getElementById('ad-fp');
+  const plats=[...new Set(DB.ads.map(a=>a.platform))];
+  const cp=pf.value;pf.innerHTML='<option value="">全部</option>'+plats.map(p=>`<option${p===cp?' selected':''}>${p}</option>`).join('');
+  const mth=document.getElementById('ad-fm').value,fpv=pf.value;
+  const data=DB.ads.filter(a=>(!mth||gm(a.date)===mth)&&(!fpv||a.platform===fpv));
+  document.getElementById('ad-count').textContent=data.length+' 筆';
+  document.getElementById('ad-tbody').innerHTML=data.map(a=>{
+    const srcBadge=a.source&&a.source.startsWith('csv')?`<span class="badge b-blue" style="font-size:10px">CSV</span>`:`<span class="badge b-gray" style="font-size:10px">手動</span>`;
+    return`<tr><td>${a.date}</td><td>${gm(a.date)}</td><td>${platBadge(a.platform)}</td>
+    <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis">${a.campaign}</td>
+    <td>${dash(a.adGroup)}</td><td>${dash(a.creative)}</td>
+    <td>$${fm(a.spend)}</td><td>${fm(a.impression)||'—'}</td><td>${fm(a.click)||'—'}</td>
+    <td><strong>${a.platformLead||'—'}</strong></td>
+    <td>${a.click>0?'$'+(a.spend/a.click).toFixed(1):'—'}</td>
+    <td>${a.platformLead>0?'$'+Math.round(a.spend/a.platformLead):'—'}</td>
+    <td>${srcBadge}</td>
+    <td><button class="bicon" onclick="openModal('ad',${a.id})">✏️</button><button class="bicon del" onclick="delAd(${a.id})">🗑</button></td></tr>`;
+  }).join('');
+}
+function delAd(id){if(confirm('確定刪除？')){DB.ads=DB.ads.filter(a=>a.id!==id);saveDB();renderAds();}}
+
+// ═══════════════════════════════════════════
+// CRM
+// ═══════════════════════════════════════════
+function renderCRM(){
+  fillSel('crm-fm',getMonths());
+  const pf=document.getElementById('crm-fp'),sf=document.getElementById('crm-fs');
+  const plats=[...new Set(DB.crm.map(c=>c.platform).filter(Boolean))];
+  const sals=[...new Set(DB.crm.map(c=>c.sales).filter(Boolean))];
+  const cpf=pf.value,csf=sf.value;
+  pf.innerHTML='<option value="">全部</option>'+plats.map(p=>`<option${p===cpf?' selected':''}>${p}</option>`).join('');
+  sf.innerHTML='<option value="">全部</option>'+sals.map(s=>`<option${s===csf?' selected':''}>${s}</option>`).join('');
+  const fm2=document.getElementById('crm-fm').value,fpv=pf.value,fsv=sf.value,fst=document.getElementById('crm-fst').value;
+  const now=new Date('2026-06-25');
+  const data=DB.crm.filter(c=>{
+    if(fpv&&c.platform!==fpv)return false;if(fsv&&c.sales!==fsv)return false;
+    if(fm2&&gm(c.createDate)!==fm2)return false;
+    if(fst==='dup'&&!c.isDuplicate)return false;if(fst==='sub'&&c.submitted!=='是')return false;
+    if(fst==='apr'&&c.approved!=='是')return false;if(fst==='loan'&&c.loaned!=='是')return false;
+    return true;
+  });
+  document.getElementById('crm-count').textContent=data.length+' 筆';
+  document.getElementById('crm-tbody').innerHTML=data.map(c=>{
+    const days=Math.floor((now-new Date(c.createDate))/86400000);
+    const isAlert=c.contacted!=='是'&&days>=1;
+    const rc=c.loaned==='是'?'row-paid':c.isDuplicate?'row-dup':isAlert?'row-alert':'';
+    return`<tr class="${rc}"><td>${c.createDate}</td>
+    <td>${c.name}${c.isDuplicate?` <span class="badge b-yellow" style="font-size:9px">重複</span>`:''}</td>
+    <td>${l4(c.phone)}</td><td>${dash(c.lineId)}</td><td>${platBadge(c.platform)}</td>
+    <td style="max-width:110px;overflow:hidden;text-overflow:ellipsis">${dash(c.campaign)}</td>
+    <td>${dash(c.sales)}</td><td>${statusBadge(c)}</td>
+    <td>${yn(c.contacted)}</td><td>${yn(c.connected)}</td><td>${yn(c.hasNeed)}</td>
+    <td>${yn(c.submitted)}</td><td>${yn(c.approved)}</td><td>${yn(c.loaned)}</td>
+    <td>${c.loanAmount?'<strong>$'+fm(c.loanAmount)+'</strong>':'—'}</td>
+    <td>${dash(c.product)}</td>
+    <td><button class="bicon" onclick="openModal('crm',${c.id})">✏️</button><button class="bicon del" onclick="delCRM(${c.id})">🗑</button></td></tr>`;
+  }).join('');
+}
+function delCRM(id){if(confirm('確定刪除？')){DB.crm=DB.crm.filter(c=>c.id!==id);markDups();saveDB();renderCRM();}}
+
+// ═══════════════════════════════════════════
+// ANALYSIS TABLES
+// ═══════════════════════════════════════════
+function renderCampaign(){
+  fillSel('camp-fm',getMonths());
+  const pf=document.getElementById('camp-fp');const plats=[...new Set(DB.ads.map(a=>a.platform))];const cp=pf.value;
+  pf.innerHTML='<option value="">全部</option>'+plats.map(p=>`<option${p===cp?' selected':''}>${p}</option>`).join('');
+  const mth=document.getElementById('camp-fm').value,fpv=pf.value;
+  const keys=[...new Set(DB.ads.map(a=>gm(a.date)+'||'+a.platform+'||'+a.campaign))];
+  const rows=keys.filter(k=>{const[m,p]=k.split('||');return(!mth||m===mth)&&(!fpv||p===fpv);}).map(k=>{
+    const[m,p,c]=k.split('||');
+    const ad=DB.ads.filter(a=>gm(a.date)===m&&a.platform===p&&a.campaign===c);
+    const cr=DB.crm.filter(x=>gm(x.createDate)===m&&x.platform===p&&x.campaign===c);
+    const spend=ad.reduce((s,a)=>s+a.spend,0),lead=ad.reduce((s,a)=>s+a.platformLead,0);
+    const valid=cr.filter(x=>!x.isDuplicate).length,sub=cr.filter(x=>x.submitted==='是').length;
+    const apr=cr.filter(x=>x.approved==='是').length,loan=cr.filter(x=>x.loaned==='是').length;
+    const lamt=cr.filter(x=>x.loaned==='是').reduce((s,x)=>s+x.loanAmount,0);
+    return{m,p,c,spend,lead,crm:cr.length,valid,sub,apr,loan,lamt};
+  });
+  document.getElementById('camp-count').textContent=rows.length+' 筆';
+  document.getElementById('camp-tbody').innerHTML=rows.map(r=>`<tr><td>${r.m}</td><td>${platBadge(r.p)}</td>
+    <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis">${r.c}</td>
+    <td>$${fm(r.spend)}</td><td>${r.lead}</td><td>${r.crm}</td><td>${r.valid}</td>
+    <td>${r.sub}</td><td>${r.apr}</td><td>${r.loan}</td>
+    <td>${r.lamt?'$'+fm(r.lamt):'—'}</td>
+    <td>${r.lead?'$'+Math.round(r.spend/r.lead):'—'}</td>
+    <td>${cpa(r.spend,r.sub)}</td><td>${cpa(r.spend,r.apr)}</td><td>${cpa(r.spend,r.loan)}</td>
+    <td><strong>${r.spend?(r.lamt/r.spend).toFixed(2)+'x':'—'}</strong></td></tr>`).join('');
+}
+
+function renderPlatform(){
+  fillSel('plat-fm',getMonths());const mth=document.getElementById('plat-fm').value;
+  const plats=[...new Set(DB.ads.map(a=>a.platform))];const allM=mth?[mth]:getMonths();const rows=[];
+  allM.forEach(m=>plats.forEach(p=>{
+    const ad=DB.ads.filter(a=>gm(a.date)===m&&a.platform===p);if(!ad.length)return;
+    const cr=DB.crm.filter(c=>gm(c.createDate)===m&&c.platform===p);
+    const spend=ad.reduce((s,a)=>s+a.spend,0),lead=ad.reduce((s,a)=>s+a.platformLead,0);
+    const valid=cr.filter(c=>!c.isDuplicate).length,sub=cr.filter(c=>c.submitted==='是').length;
+    const apr=cr.filter(c=>c.approved==='是').length,loan=cr.filter(c=>c.loaned==='是').length;
+    const lamt=cr.filter(c=>c.loaned==='是').reduce((s,c)=>s+c.loanAmount,0);
+    rows.push({m,p,spend,lead,crm:cr.length,valid,sub,apr,loan,lamt});
+  }));
+  document.getElementById('plat-tbody').innerHTML=rows.map(r=>`<tr><td>${r.m}</td><td>${platBadge(r.p)}</td>
+    <td>$${fm(r.spend)}</td><td>${r.lead}</td><td>${r.crm}</td><td>${r.valid}</td>
+    <td>${r.sub}</td><td>${r.apr}</td><td>${r.loan}</td><td>${r.lamt?'$'+fm(r.lamt):'—'}</td>
+    <td>${r.lead?'$'+Math.round(r.spend/r.lead):'—'}</td><td>${cpa(r.spend,r.sub)}</td><td>${cpa(r.spend,r.apr)}</td><td>${cpa(r.spend,r.loan)}</td>
+    <td>${pct(r.sub,r.valid)}</td><td>${pct(r.apr,r.sub)}</td><td>${pct(r.loan,r.apr)}</td>
+    <td><strong>${r.spend?(r.lamt/r.spend).toFixed(2)+'x':'—'}</strong></td></tr>`).join('');
+}
+
+function renderSales(){
+  fillSel('sales-fm',getMonths());const mth=document.getElementById('sales-fm').value;
+  const sps=[...new Set(DB.crm.map(c=>c.sales).filter(Boolean))];const allM=mth?[mth]:getMonths();const rows=[];
+  allM.forEach(m=>sps.forEach(s=>{
+    const cr=DB.crm.filter(c=>gm(c.createDate)===m&&c.sales===s);if(!cr.length)return;
+    const valid=cr.filter(c=>!c.isDuplicate).length,cont=cr.filter(c=>c.contacted==='是').length;
+    const conn=cr.filter(c=>c.connected==='是').length,need=cr.filter(c=>c.hasNeed==='是').length;
+    const sub=cr.filter(c=>c.submitted==='是').length,apr=cr.filter(c=>c.approved==='是').length;
+    const loan=cr.filter(c=>c.loaned==='是').length;
+    const lamt=cr.filter(c=>c.loaned==='是').reduce((x,c)=>x+c.loanAmount,0);
+    rows.push({m,s,total:cr.length,valid,cont,conn,need,sub,apr,loan,lamt});
+  }));
+  document.getElementById('sales-tbody').innerHTML=rows.map(r=>`<tr><td>${r.m}</td><td><strong>${r.s}</strong></td>
+    <td>${r.total}</td><td>${r.valid}</td><td>${r.cont}</td><td>${r.conn}</td><td>${r.need}</td>
+    <td>${r.sub}</td><td>${r.apr}</td><td>${r.loan}</td><td>${r.lamt?'$'+fm(r.lamt):'—'}</td>
+    <td>${pct(r.cont,r.total)}</td><td>${pct(r.conn,r.cont)}</td><td>${pct(r.need,r.conn)}</td>
+    <td>${pct(r.sub,r.valid)}</td><td>${pct(r.apr,r.sub)}</td><td>${pct(r.loan,r.apr)}</td></tr>`).join('');
+}
+
+function renderFunnelPage(){
+  fillSel('fun-fm',getMonths());
+  const pf=document.getElementById('fun-fp');const plats=[...new Set(DB.crm.map(c=>c.platform).filter(Boolean))];const cp=pf.value;
+  pf.innerHTML='<option value="">全部</option>'+plats.map(p=>`<option${p===cp?' selected':''}>${p}</option>`).join('');
+  const mth=document.getElementById('fun-fm').value,fpv=pf.value;
+  const crm=DB.crm.filter(c=>(!mth||gm(c.createDate)===mth)&&(!fpv||c.platform===fpv));
+  const lead=DB.ads.filter(a=>(!mth||gm(a.date)===mth)&&(!fpv||a.platform===fpv)).reduce((s,a)=>s+a.platformLead,0);
+  renderFunnelDiv('funnel-main',crm,lead);
+  const platsF=fpv?[fpv]:[...new Set(DB.ads.map(a=>a.platform))];const allM=mth?[mth]:getMonths();const rows=[];
+  allM.forEach(m=>platsF.forEach(p=>{
+    const cr=DB.crm.filter(c=>gm(c.createDate)===m&&c.platform===p);
+    const l=DB.ads.filter(a=>gm(a.date)===m&&a.platform===p).reduce((s,a)=>s+a.platformLead,0);
+    if(!cr.length&&!l)return;
+    const valid=cr.filter(c=>!c.isDuplicate).length,cont=cr.filter(c=>c.contacted==='是').length;
+    const conn=cr.filter(c=>c.connected==='是').length,need=cr.filter(c=>c.hasNeed==='是').length;
+    const sub=cr.filter(c=>c.submitted==='是').length,apr=cr.filter(c=>c.approved==='是').length;
+    const loan=cr.filter(c=>c.loaned==='是').length;
+    rows.push({m,p,l,crm:cr.length,valid,cont,conn,need,sub,apr,loan});
+  }));
+  document.getElementById('funnel-tbody').innerHTML=rows.map(r=>`<tr><td>${platBadge(r.p)}</td><td>${r.m}</td>
+    <td>${r.l}</td><td>${r.crm}</td><td>${r.valid}</td><td>${r.cont}</td><td>${r.conn}</td><td>${r.need}</td>
+    <td>${r.sub}</td><td>${r.apr}</td><td>${r.loan}</td>
+    <td>${pct(r.crm,r.l)}</td><td>${pct(r.sub,r.valid)}</td><td>${pct(r.apr,r.sub)}</td><td>${pct(r.loan,r.apr)}</td></tr>`).join('');
+}
+
+function renderReport(){
+  fillSel('global-month',getMonths());
+  const mth=document.getElementById('global-month').value||getMonths()[0]||'';
+  const ads=DB.ads.filter(a=>gm(a.date)===mth);const crm=DB.crm.filter(c=>gm(c.createDate)===mth);
+  const spend=ads.reduce((s,a)=>s+a.spend,0),lead=ads.reduce((s,a)=>s+a.platformLead,0);
+  const valid=crm.filter(c=>!c.isDuplicate).length,sub=crm.filter(c=>c.submitted==='是').length;
+  const apr=crm.filter(c=>c.approved==='是').length,loan=crm.filter(c=>c.loaned==='是').length;
+  const lamt=crm.filter(c=>c.loaned==='是').reduce((s,c)=>s+c.loanAmount,0);
+  const plats=[...new Set(ads.map(a=>a.platform))];
+  const bestP=plats.sort((a,b)=>crm.filter(c=>c.platform===b&&c.loaned==='是').length-crm.filter(c=>c.platform===a&&c.loaned==='是').length)[0]||'—';
+  const camps=[...new Set(ads.map(a=>a.campaign))];
+  const campCPA=camps.map(c=>{const s=ads.filter(a=>a.campaign===c).reduce((x,a)=>x+a.spend,0);const l=crm.filter(x=>x.campaign===c&&x.loaned==='是').length;return{c,cpa:l?s/l:Infinity};}).filter(x=>x.cpa<Infinity).sort((a,b)=>a.cpa-b.cpa);
+  const sps=[...new Set(crm.map(c=>c.sales).filter(Boolean))];
+  const bestS=sps.sort((a,b)=>crm.filter(c=>c.sales===b&&c.loaned==='是').length-crm.filter(c=>c.sales===a&&c.loaned==='是').length)[0]||'—';
+  document.getElementById('report-body').innerHTML=`
+    <div style="margin-bottom:20px"><div style="font-size:18px;font-weight:600">${mth} 月報摘要</div><div style="font-size:12px;color:var(--g400);margin-top:3px">自動產出 · 以 CRM 實際資料為準</div></div>
+    <div class="kpi-grid">
+      ${[{l:'本月花費',v:'$'+fm(spend)},{l:'平台Lead',v:lead},{l:'有效名單',v:valid},{l:'送件',v:sub},{l:'核准',v:apr},{l:'撥款',v:loan,a:true},{l:'撥款金額',v:'$'+fm(lamt),a:true}].map(k=>`<div class="kpi-card${k.a?' accent':''}"><div class="kpi-label">${k.l}</div><div class="kpi-value">${k.v}</div></div>`).join('')}
+    </div>
+    <div class="rep-cards">
+      <div class="rep-card good"><div class="rep-icon">🏆</div><div class="rep-lbl">最佳平台</div><div class="rep-val">${bestP}</div><div class="rep-hint">撥款筆數最多</div></div>
+      <div class="rep-card good"><div class="rep-icon">📈</div><div class="rep-lbl">最佳廣告活動</div><div class="rep-val" style="font-size:13px">${campCPA[0]?campCPA[0].c:'—'}</div><div class="rep-hint">${campCPA[0]?'撥款CPA $'+Math.round(campCPA[0].cpa):''}</div></div>
+      <div class="rep-card good"><div class="rep-icon">⭐</div><div class="rep-lbl">最佳業務</div><div class="rep-val">${bestS}</div><div class="rep-hint">撥款筆數最多</div></div>
+      <div class="rep-card good"><div class="rep-icon">💡</div><div class="rep-lbl">建議加碼</div><div class="rep-val" style="font-size:13px">${campCPA[0]?campCPA[0].c:'—'}</div><div class="rep-hint">撥款 CPA 最低</div></div>
+      <div class="rep-card warn"><div class="rep-icon">⚠️</div><div class="rep-lbl">建議暫停</div><div class="rep-val" style="font-size:13px">${campCPA.length>1?campCPA[campCPA.length-1].c:'—'}</div><div class="rep-hint">撥款 CPA 最高</div></div>
+      <div class="rep-card"><div class="rep-icon">📊</div><div class="rep-lbl">整體 ROAS</div><div class="rep-val">${spend?(lamt/spend).toFixed(2)+'x':'—'}</div><div class="rep-hint">撥款金額 ÷ 花費</div></div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════
+function renderSettings(){
+  const cats=[{key:'platforms',label:'廣告平台'},{key:'salesList',label:'業務名單'},{key:'products',label:'貸款產品'},{key:'failReasons',label:'失敗原因'}];
+  document.getElementById('settings-main').innerHTML=cats.map(cat=>`<div class="tcard">
+    <div class="thead"><div class="thead-title">${cat.label}</div></div>
+    <div style="padding:12px 16px">
+      ${DB.settings[cat.key].map((v,i)=>`<div class="set-item"><span>${v}</span><button class="set-del" onclick="delItem('${cat.key}',${i})">×</button></div>`).join('')}
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <input id="add-${cat.key}" placeholder="新增…" style="flex:1;border:1px solid var(--g200);border-radius:6px;padding:6px 10px;font-size:12.5px;font-family:var(--font);outline:none">
+        <button class="btn btn-primary" style="padding:6px 12px;font-size:12px" onclick="addItem('${cat.key}')">新增</button>
+      </div>
+    </div></div>`).join('');
+}
+function addItem(key){const el=document.getElementById('add-'+key);const v=el.value.trim();if(!v)return;if(!DB.settings[key].includes(v))DB.settings[key].push(v);el.value='';saveDB();renderSettings();}
+function delItem(key,i){DB.settings[key].splice(i,1);saveDB();renderSettings();}
+
+// ═══════════════════════════════════════════
+// MODALS
+// ═══════════════════════════════════════════
+function openModal(type,id){
+  const d=(type==='ad'?DB.ads:DB.crm).find(x=>x.id===id)||null;
+  const S=DB.settings;
+  const ynO=v=>S.yesno.map(y=>`<option${y===v?' selected':''}>${y}</option>`).join('');
+  const platO=v=>S.platforms.map(p=>`<option${p===v?' selected':''}>${p}</option>`).join('');
+  const salO=v=>S.salesList.map(s=>`<option${s===v?' selected':''}>${s}</option>`).join('');
+  const proO=v=>['<option value=""></option>',...S.products.map(p=>`<option${p===v?' selected':''}>${p}</option>`)].join('');
+  const frO=v=>['<option value=""></option>',...S.failReasons.map(r=>`<option${r===v?' selected':''}>${r}</option>`)].join('');
+  let html='';
+  if(type==='ad'){
+    html=`<div class="mhead"><div class="mhead-title">${d?'編輯':'新增'}廣告花費</div><button class="mclose" onclick="closeModal()">✕</button></div>
+    <div class="mbody"><div class="fgrid">
+      <div class="fgroup"><label class="flabel">日期</label><input type="date" id="f-date" value="${d?d.date:'2026-06-25'}"></div>
+      <div class="fgroup"><label class="flabel">平台</label><select id="f-plat">${platO(d?d.platform:'')}</select></div>
+      <div class="fgroup full"><label class="flabel">廣告活動</label><input id="f-camp" value="${d?d.campaign:''}"></div>
+      <div class="fgroup"><label class="flabel">廣告組</label><input id="f-ag" value="${d?d.adGroup:''}"></div>
+      <div class="fgroup"><label class="flabel">素材</label><input id="f-cr" value="${d?d.creative:''}"></div>
+      <div class="fdiv"></div>
+      <div class="fgroup"><label class="flabel">花費 (元)</label><input type="number" id="f-spend" value="${d?d.spend:''}"></div>
+      <div class="fgroup"><label class="flabel">曝光</label><input type="number" id="f-imp" value="${d?d.impression:''}"></div>
+      <div class="fgroup"><label class="flabel">點擊</label><input type="number" id="f-click" value="${d?d.click:''}"></div>
+      <div class="fgroup"><label class="flabel">平台 Lead</label><input type="number" id="f-lead" value="${d?d.platformLead:''}"></div>
+      <div class="fgroup full"><label class="flabel">備註</label><input id="f-note" value="${d?d.note:''}"></div>
+    </div></div>
+    <div class="mfoot"><button class="btn btn-ghost" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="saveAd(${d?d.id:0})">儲存</button></div>`;
+  }else{
+    html=`<div class="mhead"><div class="mhead-title">${d?'編輯':'新增'}客戶名單</div><button class="mclose" onclick="closeModal()">✕</button></div>
+    <div class="mbody"><div class="fgrid">
+      <div class="fgroup"><label class="flabel">建立日期</label><input type="date" id="c-date" value="${d?d.createDate:'2026-06-25'}"></div>
+      <div class="fgroup"><label class="flabel">姓名</label><input id="c-name" value="${d?d.name:''}"></div>
+      <div class="fgroup"><label class="flabel">電話</label><input id="c-phone" value="${d?d.phone:''}"></div>
+      <div class="fgroup"><label class="flabel">LINE ID</label><input id="c-line" value="${d?d.lineId:''}"></div>
+      <div class="fgroup"><label class="flabel">Email</label><input id="c-email" value="${d?d.email:''}"></div>
+      <div class="fdiv-label">廣告來源</div>
+      <div class="fgroup"><label class="flabel">來源平台</label><select id="c-plat">${platO(d?d.platform:'')}</select></div>
+      <div class="fgroup"><label class="flabel">廣告活動</label><input id="c-camp" value="${d?d.campaign:''}"></div>
+      <div class="fgroup"><label class="flabel">業務</label><select id="c-sales">${salO(d?d.sales:'')}</select></div>
+      <div class="fdiv-label">聯絡進度</div>
+      <div class="fgroup"><label class="flabel">已聯絡</label><select id="c-cont">${ynO(d?d.contacted:'否')}</select></div>
+      <div class="fgroup"><label class="flabel">接通</label><select id="c-conn">${ynO(d?d.connected:'否')}</select></div>
+      <div class="fgroup"><label class="flabel">有需求</label><select id="c-need">${ynO(d?d.hasNeed:'否')}</select></div>
+      <div class="fdiv-label">業務進度</div>
+      <div class="fgroup"><label class="flabel">送件</label><select id="c-sub">${ynO(d?d.submitted:'否')}</select></div>
+      <div class="fgroup"><label class="flabel">送件日期</label><input type="date" id="c-sdate" value="${d?d.submitDate:''}"></div>
+      <div class="fgroup"><label class="flabel">核准</label><select id="c-apr">${ynO(d?d.approved:'否')}</select></div>
+      <div class="fgroup"><label class="flabel">核准日期</label><input type="date" id="c-adate" value="${d?d.approveDate:''}"></div>
+      <div class="fgroup"><label class="flabel">撥款</label><select id="c-loan">${ynO(d?d.loaned:'否')}</select></div>
+      <div class="fgroup"><label class="flabel">撥款日期</label><input type="date" id="c-ldate" value="${d?d.loanDate:''}"></div>
+      <div class="fgroup"><label class="flabel">撥款金額</label><input type="number" id="c-lamt" value="${d?d.loanAmount:''}"></div>
+      <div class="fgroup"><label class="flabel">貸款產品</label><select id="c-prod">${proO(d?d.product:'')}</select></div>
+      <div class="fgroup"><label class="flabel">失敗原因</label><select id="c-fr">${frO(d?d.failReason:'')}</select></div>
+      <div class="fgroup full"><label class="flabel">備註</label><textarea id="c-note">${d?d.note:''}</textarea></div>
+    </div></div>
+    <div class="mfoot"><button class="btn btn-ghost" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="saveCRM(${d?d.id:0})">儲存</button></div>`;
+  }
+  const ov=document.createElement('div');ov.className='modal-ov';ov.id='modal-ov';
+  ov.addEventListener('click',e=>{if(e.target===ov)closeModal();});
+  const box=document.createElement('div');box.className='modal-box';box.innerHTML=html;
+  ov.appendChild(box);document.getElementById('modal-root').appendChild(ov);
+}
+function closeModal(){const o=document.getElementById('modal-ov');if(o)o.remove();}
+
+function saveAd(id){
+  const obj={id:id||Date.now(),date:document.getElementById('f-date').value,platform:document.getElementById('f-plat').value,campaign:document.getElementById('f-camp').value,adGroup:document.getElementById('f-ag').value,creative:document.getElementById('f-cr').value,spend:+document.getElementById('f-spend').value||0,impression:+document.getElementById('f-imp').value||0,click:+document.getElementById('f-click').value||0,platformLead:+document.getElementById('f-lead').value||0,note:document.getElementById('f-note').value,source:'manual'};
+  if(id){const i=DB.ads.findIndex(a=>a.id===id);if(i>=0)DB.ads[i]=obj;}else DB.ads.push(obj);
+  saveDB();closeModal();renderAds();
+}
+function saveCRM(id){
+  const obj={id:id||Date.now(),createDate:document.getElementById('c-date').value,name:document.getElementById('c-name').value,phone:document.getElementById('c-phone').value,lineId:document.getElementById('c-line').value,email:document.getElementById('c-email').value,platform:document.getElementById('c-plat').value,campaign:document.getElementById('c-camp').value,adGroup:'',creative:'',keyword:'',sales:document.getElementById('c-sales').value,contacted:document.getElementById('c-cont').value,connected:document.getElementById('c-conn').value,hasNeed:document.getElementById('c-need').value,submitted:document.getElementById('c-sub').value,submitDate:document.getElementById('c-sdate').value,approved:document.getElementById('c-apr').value,approveDate:document.getElementById('c-adate').value,loaned:document.getElementById('c-loan').value,loanDate:document.getElementById('c-ldate').value,loanAmount:+document.getElementById('c-lamt').value||0,product:document.getElementById('c-prod').value,failReason:document.getElementById('c-fr').value,note:document.getElementById('c-note').value};
+  if(id){const i=DB.crm.findIndex(c=>c.id===id);if(i>=0)DB.crm[i]=obj;}else DB.crm.push(obj);
+  markDups();saveDB();closeModal();renderCRM();
+}
+
+// ═══════════════════════════════════════════
+// DATA I/O
+// ═══════════════════════════════════════════
+function exportData(){const b=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='loanCRM_backup_'+new Date().toISOString().slice(0,10)+'.json';a.click();}
+function importBackup(input){const f=input.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{try{const d=JSON.parse(e.target.result);DB.ads=d.ads||[];DB.crm=d.crm||[];DB.importLogs=d.importLogs||[];if(d.settings)Object.assign(DB.settings,d.settings);markDups();saveDB();renderDashboard();alert('✅ 匯入成功！');}catch(err){alert('❌ 匯入失敗：'+err.message);}};r.readAsText(f);}
+function clearData(){DB.ads=[];DB.crm=[];DB.importLogs=[];saveDB();renderDashboard();}
+
+// INIT
+loadDB();
+renderDashboard();
+</script>
+</body>
+</html>
