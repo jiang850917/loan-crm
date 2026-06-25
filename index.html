@@ -706,13 +706,12 @@ function processCSVFile(file){
     // Try to extract date range from header lines (e.g. "2026年6月1日 - 2026年6月25日")
     let extractedStartDate='';
     for(let i=0;i<Math.min(5,lines.length);i++){
-      const m=lines[i].match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+      const m=lines[i].match(/([0-9]{4})年([0-9]{1,2})月([0-9]{1,2})日/);
       if(m){
         extractedStartDate=m[1]+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[3]).padStart(2,'0');
         break;
       }
-      // Also try YYYY-MM-DD or YYYY/MM/DD range format
-      const m2=lines[i].match(/(\d{4})[\-\/](\d{1,2})[\-\/](\d{1,2})/);
+      const m2=lines[i].match(/([0-9]{4})[-\/]([0-9]{1,2})[-\/]([0-9]{1,2})/);
       if(m2){
         extractedStartDate=m2[1]+'-'+String(m2[2]).padStart(2,'0')+'-'+String(m2[3]).padStart(2,'0');
         break;
