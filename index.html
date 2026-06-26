@@ -937,11 +937,8 @@ function saveAd(id){
 
 // ─── ANALYSIS ───
 function getCampaignRows(mthFilter,pfFilter){
-  // Keys from ads (use ad date month)
-  const adKeys=[...new Set(DB.ads.map(a=>gm(a.date)+"||"+a.platform+"||"+a.campaign))];
-  // Also include platform+campaign combos from leads that have no matching ad
-  const leadKeys=[...new Set(DB.clients.flatMap(c=>(c.leads||[]).map(l=>gm(l.date)+"||"+l.platform+"||"+l.campaign).filter(k=>k.split("||")[2])))];
-  const allKeys=[...new Set([...adKeys,...leadKeys])];
+  // Keys ONLY from ads - use ad date month, not lead date
+  const allKeys=[...new Set(DB.ads.map(a=>gm(a.date)+"||"+a.platform+"||"+a.campaign))];
   return allKeys.filter(k=>{
     const[m,p]=k.split("||");
     return(!mthFilter||m===mthFilter)&&(!pfFilter||p===pfFilter);
