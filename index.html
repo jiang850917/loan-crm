@@ -997,8 +997,10 @@ function renderPlatform(){
   const plats=[...new Set(DB.ads.map(a=>a.platform))];const allM=mth?[mth]:getMonths();const rows=[];
   allM.forEach(m=>plats.forEach(p=>{
     const ad=DB.ads.filter(a=>gm(a.date)===m&&a.platform===p);
-    const matchLeads=DB.clients.flatMap(c=>(c.leads||[]).filter(l=>l.platform===p&&gm(l.date)===m).map(l=>({...l,clientId:c.id})));
-    if(!ad.length&&!matchLeads.length)return;
+    // Only show rows where there's ad spend data
+    if(!ad.length)return;
+    // Match leads by platform only (no date restriction)
+    const matchLeads=DB.clients.flatMap(c=>(c.leads||[]).filter(l=>l.platform===p).map(l=>({...l,clientId:c.id})));
     const spend=ad.reduce((s,a)=>s+a.spend,0),lead=ad.reduce((s,a)=>s+a.platformLead,0);
     const clientIds=[...new Set(matchLeads.map(l=>l.clientId))];
     const allSubs=clientIds.flatMap(id=>{const c=DB.clients.find(x=>x.id===id);return c?c.submissions||[]:[];});
@@ -1059,9 +1061,10 @@ function renderFunnelPage(){
   renderFunnelDiv("funnel-main",allLeads,matchClients,adLead);
   const platsF=fpv?[fpv]:[...new Set(DB.ads.map(a=>a.platform))];const allM=mth?[mth]:getMonths();const rows=[];
   allM.forEach(m=>platsF.forEach(p=>{
-    const ml=DB.clients.flatMap(c=>(c.leads||[]).filter(l=>l.platform===p&&gm(l.date)===m).map(l=>({...l,clientId:c.id})));
     const l=DB.ads.filter(a=>gm(a.date)===m&&a.platform===p).reduce((s,a)=>s+a.platformLead,0);
-    if(!ml.length&&!l)return;
+    if(!l)return;
+    // Match leads by platform only (no date restriction)
+    const ml=DB.clients.flatMap(c=>(c.leads||[]).filter(l=>l.platform===p).map(l=>({...l,clientId:c.id})));
     const cids=[...new Set(ml.map(x=>x.clientId))];
     const allSubs=cids.flatMap(id=>{const c=DB.clients.find(x=>x.id===id);return c?c.submissions||[]:[];});
     rows.push({m,p,l,crm:ml.length,newC:ml.filter(x=>x.clientType==="新客").length,retC:ml.filter(x=>x.clientType==="舊客").length,sub:allSubs.length,apr:allSubs.filter(s=>s.approved==="是").length,loan:allSubs.filter(s=>s.loaned==="是").length});
