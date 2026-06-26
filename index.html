@@ -561,7 +561,10 @@ function renderCRM(){
     if(fpv&&!leads.some(l=>l.platform===fpv))return false;
     if(fsv&&!leads.some(l=>l.sales===fsv))return false;
     if(mth&&!leads.some(l=>gm(l.date)===mth))return false;
-    if(ft&&!leads.some(l=>l.clientType===ft))return false;
+    if(ft){
+      const latestLead=leads.slice().sort((a,b)=>b.date.localeCompare(a.date))[0];
+      if(!latestLead||latestLead.clientType!==ft)return false;
+    }
     if(fcv&&!leads.some(l=>l.campaign===fcv))return false;
     if(search){
       const n=(c.name||"").toLowerCase();
