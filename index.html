@@ -422,7 +422,9 @@ function nav(id,btn){
   document.querySelectorAll(".nav-item").forEach(b=>b.classList.remove("active"));
   document.getElementById("page-"+id).classList.add("active");
   if(btn)btn.classList.add("active");
+  else{const b=document.querySelector(`.nav-item[onclick*="nav('${id}"]`);if(b)b.classList.add("active");}
   document.getElementById("topbar-title").textContent=pageTitles[id]||"";
+  localStorage.setItem("crm_last_page",id);
   const fns={dashboard:renderDashboard,"ad-spend":renderAds,crm:renderCRM,campaign:renderCampaign,platform:renderPlatform,sales:renderSales,funnel:renderFunnelPage,report:renderReport,settings:renderSettings,import:renderImportLog};
   if(fns[id])fns[id]();
 }
@@ -1237,7 +1239,8 @@ function clearData(){DB.ads=[];DB.clients=[];DB.importLogs=[];saveDB();renderDas
 
 // ─── INIT ───
 loadDB();
-renderDashboard();
+const lastPage=localStorage.getItem("crm_last_page")||"dashboard";
+nav(lastPage);
 </script>
 </body>
 </html>
