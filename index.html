@@ -951,8 +951,8 @@ function getCampaignRows(mthFilter,pfFilter){
   }).map(k=>{
     const[m,p,c]=k.split("||");
     const ad=DB.ads.filter(a=>gm(a.date)===m&&a.platform===p&&a.campaign===c);
-    // Leads: match by platform+campaign, regardless of when client first came
-    const matchLeads=DB.clients.flatMap(cl=>(cl.leads||[]).filter(l=>l.platform===p&&l.campaign===c&&gm(l.date)===m).map(l=>({...l,clientId:cl.id,submissions:cl.submissions||[]})));
+    // Leads: match by platform+campaign ONLY - ignore lead date month
+    const matchLeads=DB.clients.flatMap(cl=>(cl.leads||[]).filter(l=>l.platform===p&&l.campaign===c).map(l=>({...l,clientId:cl.id,submissions:cl.submissions||[]})));
     const spend=ad.reduce((s,a)=>s+a.spend,0);
     const lead=ad.reduce((s,a)=>s+a.platformLead,0);
     const allSubs=[...new Set(matchLeads.map(l=>l.clientId))].flatMap(id=>{const cl=DB.clients.find(c=>c.id===id);return cl?cl.submissions||[]:[];});
