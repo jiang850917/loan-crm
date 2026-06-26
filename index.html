@@ -216,7 +216,7 @@ tbody tr:hover td{background:#FAFAFA}
       <div class="page active" id="page-dashboard">
         <div class="kpi-grid" id="dash-kpis"></div>
         <div class="chart-grid c2">
-          <div class="chart-card"><div class="chart-card-title">平台花費 vs Lead</div><div class="chart-card-sub">廣告投放效益</div><div class="legend" id="leg-plat"></div><div style="position:relative;height:190px"><canvas id="c-plat" role="img" aria-label="平台花費Lead比較">平台花費Lead比較圖</canvas></div></div>
+          <div class="chart-card"><div class="chart-card-title">平台花費 vs Lead</div><div class="chart-card-sub">廣告投放效益</div><div class="legend" id="leg-plat"></div><div style="position:relative;height:190px"><canvas id="crm-platform" role="img" aria-label="平台花費Lead比較">平台花費Lead比較圖</canvas></div></div>
           <div class="chart-card"><div class="chart-card-title">廣告活動 撥款CPA</div><div class="chart-card-sub">花費 ÷ 撥款筆數</div><div style="position:relative;height:210px"><canvas id="c-cpa" role="img" aria-label="CPA排行">廣告活動CPA排行圖</canvas></div></div>
           <div class="chart-card"><div class="chart-card-title">業務送件排行</div><div class="chart-card-sub">本月各業務送件數</div><div style="position:relative;height:170px"><canvas id="c-s-sub" role="img" aria-label="業務送件排行">業務送件排行圖</canvas></div></div>
           <div class="chart-card"><div class="chart-card-title">業務撥款排行</div><div class="chart-card-sub">本月各業務撥款金額</div><div style="position:relative;height:170px"><canvas id="c-s-loan" role="img" aria-label="業務撥款排行">業務撥款排行圖</canvas></div></div>
@@ -509,7 +509,7 @@ function renderDashboard(){
 
   const plats=[...new Set(DB.ads.map(a=>a.platform))];
   document.getElementById('leg-plat').innerHTML=`<div class="legend-item"><span class="legend-dot" style="background:${RED}"></span>花費(左)</div><div class="legend-item"><span class="legend-dot" style="background:${BLUE}"></span>Lead(右)</div>`;
-  dc('c-plat');charts['c-plat']=new Chart(document.getElementById('c-plat'),{type:'bar',data:{labels:plats,datasets:[{label:'花費',data:plats.map(p=>ads.filter(a=>a.platform===p).reduce((s,a)=>s+a.spend,0)),backgroundColor:RED,borderRadius:6,yAxisID:'y'},{label:'Lead',data:plats.map(p=>ads.filter(a=>a.platform===p).reduce((s,a)=>s+a.platformLead,0)),backgroundColor:BLUE,borderRadius:6,yAxisID:'y2'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{callback:v=>'$'+(v/1000).toFixed(0)+'K'},grid:{color:'#f0f0f0'}},y2:{type:'linear',position:'right',beginAtZero:true,grid:{drawOnChartArea:false}}}}});
+  dc('c-plat');charts['c-plat']=new Chart(document.getElementById('crm-platform'),{type:'bar',data:{labels:plats,datasets:[{label:'花費',data:plats.map(p=>ads.filter(a=>a.platform===p).reduce((s,a)=>s+a.spend,0)),backgroundColor:RED,borderRadius:6,yAxisID:'y'},{label:'Lead',data:plats.map(p=>ads.filter(a=>a.platform===p).reduce((s,a)=>s+a.platformLead,0)),backgroundColor:BLUE,borderRadius:6,yAxisID:'y2'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{callback:v=>'$'+(v/1000).toFixed(0)+'K'},grid:{color:'#f0f0f0'}},y2:{type:'linear',position:'right',beginAtZero:true,grid:{drawOnChartArea:false}}}}});
 
   const camps=[...new Set(ads.map(a=>a.campaign))];
   const cData=camps.map(c=>{const s=ads.filter(a=>a.campaign===c).reduce((x,a)=>x+a.spend,0);const l=crm.filter(x=>x.campaign===c).flatMap(x=>x.submissions||[]).filter(s=>s.loaned==='是').length;return{c:c.substring(0,14),cpa:l?Math.round(s/l):null};}).filter(x=>x.cpa).sort((a,b)=>a.cpa-b.cpa).slice(0,6);
@@ -674,30 +674,30 @@ function openCRMModal(id){
     <div class="mhead"><div class="mhead-title">${d?'編輯':'新增'}客戶名單</div><button class="mclose" onclick="closeModal()">✕</button></div>
     <div class="mbody">
       <div class="fgrid">
-        <div class="fgroup"><label class="flabel">進線日期 *</label><input type="date" id="c-leads" value="${d?d.leadsDate||d.createDate:'2026-06-25'}"></div>
-        <div class="fgroup"><label class="flabel">建檔日期</label><input type="date" id="c-create" value="${d?d.createDate:'2026-06-25'}"></div>
-        <div class="fgroup"><label class="flabel">姓名</label><input id="c-name" value="${d?d.name:''}"></div>
-        <div class="fgroup"><label class="flabel">電話</label><input id="c-phone" value="${d?d.phone:''}" oninput="autoDetectType(this.value,${d?d.id:0})"></div>
+        <div class="fgroup"><label class="flabel">進線日期 *</label><input type="date" id="crm-leads-date" value="${d?d.leadsDate||d.createDate:'2026-06-25'}"></div>
+        <div class="fgroup"><label class="flabel">建檔日期</label><input type="date" id="crm-create-date" value="${d?d.createDate:'2026-06-25'}"></div>
+        <div class="fgroup"><label class="flabel">姓名</label><input id="crm-client-name" value="${d?d.name:''}"></div>
+        <div class="fgroup"><label class="flabel">電話</label><input id="crm-client-phone" value="${d?d.phone:''}" oninput="autoDetectType(this.value,${d?d.id:0})"></div>
         <div class="fdiv-label">廣告來源</div>
-        <div class="fgroup"><label class="flabel">來源平台</label><select id="c-plat" onchange="updateCampSel()">${platO(d?d.platform:'')}</select></div>
+        <div class="fgroup"><label class="flabel">來源平台</label><select id="crm-platform" onchange="updateCampSel()">${platO(d?d.platform:'')}</select></div>
         <div class="fgroup"><label class="flabel">廣告活動</label>
-          <select id="c-camp"><option value="">（請選擇）</option>${campOpts.map(c=>`<option value="${c}"${d&&d.campaign===c?' selected':''}>${c}</option>`).join('')}${d&&d.campaign&&!campOpts.includes(d.campaign)?`<option value="${d.campaign}" selected>${d.campaign}</option>`:''}</select>
+          <select id="crm-campaign"><option value="">（請選擇）</option>${campOpts.map(c=>`<option value="${c}"${d&&d.campaign===c?' selected':''}>${c}</option>`).join('')}${d&&d.campaign&&!campOpts.includes(d.campaign)?`<option value="${d.campaign}" selected>${d.campaign}</option>`:''}</select>
         </div>
-        <div class="fgroup"><label class="flabel">業務</label><select id="c-sales">${salO(d?d.sales:'')}</select></div>
+        <div class="fgroup"><label class="flabel">業務</label><select id="crm-sales-sel">${salO(d?d.sales:'')}</select></div>
         <div class="fgroup"><label class="flabel">客戶類型</label>
-          <select id="c-type" onchange="this.dataset.manual='1'">${S.clientType.map(t=>`<option value="${t}"${d&&d.clientType===t?' selected':''}>${t}</option>`).join('')}</select>
-          <span id="c-type-hint" style="font-size:10px;color:var(--g400);margin-top:2px">系統依電話自動偵測</span>
+          <select id="crm-client-type" onchange="this.dataset.manual='1'">${S.clientType.map(t=>`<option value="${t}"${d&&d.clientType===t?' selected':''}>${t}</option>`).join('')}</select>
+          <span id="crm-type-hint" style="font-size:10px;color:var(--g400);margin-top:2px">系統依電話自動偵測</span>
         </div>
         <div class="fdiv-label">聯絡狀態</div>
         <div class="fgroup full"><label class="flabel">目前狀態</label>
-          <select id="c-status">${S.contactStatus.map(s=>`<option value="${s}"${d&&d.contactStatus===s?' selected':''}>${s}</option>`).join('')}</select>
+          <select id="crm-contact-status">${S.contactStatus.map(s=>`<option value="${s}"${d&&d.contactStatus===s?' selected':''}>${s}</option>`).join('')}</select>
         </div>
         <div class="fdiv-label">送件記錄</div>
       </div>
       <div id="subs-container">${subs.map((s,i)=>renderSubForm(s,i)).join('')}</div>
       <button class="btn btn-ghost" style="margin-top:10px;font-size:12px;width:100%;justify-content:center" onclick="addSubForm()">＋ 新增送件記錄</button>
       <div class="fgrid" style="margin-top:12px">
-        <div class="fgroup full"><label class="flabel">備註</label><textarea id="c-note">${d?d.note:''}</textarea></div>
+        <div class="fgroup full"><label class="flabel">備註</label><textarea id="crm-note">${d?d.note:''}</textarea></div>
       </div>
     </div>
     <div class="mfoot"><button class="btn btn-ghost" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="saveCRM(${d?d.id:0})">儲存</button></div>
@@ -778,20 +778,20 @@ function renderSubList(client){
 
 function autoDetectType(phone,currentId){
   if(!phone||phone.length<4)return;
-  const sel=document.getElementById('c-type');
+  const sel=document.getElementById('crm-client-type');
   if(!sel||sel.dataset.manual==='1')return;
   const exists=DB.crm.find(c=>c.phone===phone&&c.id!==currentId);
   sel.value=exists?'舊客':'新客';
-  document.getElementById('c-type-hint').textContent=exists?'⚠️ 電話重複，自動標為舊客':'✓ 未見過此電話，標為新客';
+  document.getElementById('crm-type-hint').textContent=exists?'⚠️ 電話重複，自動標為舊客':'✓ 未見過此電話，標為新客';
 }
 function updateCampSel(){
-  const p=document.getElementById('c-plat').value;
-  const sel=document.getElementById('c-camp');const cur=sel.value;
+  const p=document.getElementById('crm-platform').value;
+  const sel=document.getElementById('crm-campaign');const cur=sel.value;
   const camps=[...new Set(DB.ads.filter(a=>!p||a.platform===p).map(a=>a.campaign).filter(Boolean))].sort();
   sel.innerHTML='<option value="">（請選擇）</option>'+camps.map(c=>`<option value="${c}"${c===cur?' selected':''}>${c}</option>`).join('');
 }
 function saveCRM(id){
-  const typeEl=document.getElementById('c-type');
+  const typeEl=document.getElementById('crm-client-type');
   const container=document.getElementById('subs-container');
   const subs=[];
   if(container){
@@ -808,7 +808,7 @@ function saveCRM(id){
       }
     });
   }
-  const base={leadsDate:document.getElementById('c-leads').value,createDate:document.getElementById('c-create').value,name:document.getElementById('c-name').value,phone:document.getElementById('c-phone').value,platform:document.getElementById('c-plat').value,campaign:document.getElementById('c-camp').value||'',sales:document.getElementById('c-sales').value,clientType:typeEl?typeEl.value:'新客',clientTypeManual:typeEl&&typeEl.dataset.manual==='1',contactStatus:document.getElementById('c-status').value,note:document.getElementById('c-note').value,submissions:subs};
+  const base={leadsDate:document.getElementById('crm-leads-date').value,createDate:document.getElementById('crm-create-date').value,name:document.getElementById('crm-client-name').value,phone:document.getElementById('crm-client-phone').value,platform:document.getElementById('crm-platform').value,campaign:document.getElementById('crm-campaign').value||'',sales:document.getElementById('crm-sales-sel').value,clientType:typeEl?typeEl.value:'新客',clientTypeManual:typeEl&&typeEl.dataset.manual==='1',contactStatus:document.getElementById('crm-contact-status').value,note:document.getElementById('crm-note').value,submissions:subs};
   if(id){const i=DB.crm.findIndex(c=>c.id===id);if(i>=0)Object.assign(DB.crm[i],base);}
   else DB.crm.push({id:Date.now(),...base,isDuplicate:false});
   markDups();saveDB();closeModal();renderCRM();
