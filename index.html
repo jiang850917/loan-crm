@@ -249,6 +249,7 @@ tbody tr:hover td{background:#FAFAFA}
           <div class="fg"><label>業務</label><select id="crm-fs" onchange="renderCRM()"><option value="">全部</option></select></div>
           <div class="fg"><label>月份</label><select id="crm-fm" onchange="renderCRM()"><option value="">全部</option></select></div>
           <div class="fg"><label>客戶類型</label><select id="crm-ft" onchange="renderCRM()"><option value="">全部</option><option>新客</option><option>舊客</option></select></div>
+          <div class="fg" style="min-width:160px"><label>廣告活動</label><select id="crm-fc" onchange="renderCRM()"><option value="">全部</option></select></div>
         </div>
         <div class="fbar" style="padding:10px 16px">
           <div class="fg"><label>進線日期 從</label><input type="date" id="crm-lf" onchange="renderCRM()"></div>
@@ -537,11 +538,15 @@ function renderCRM(){
   const pf=document.getElementById("crm-fp"),sf=document.getElementById("crm-fs");
   const plats=[...new Set(DB.clients.flatMap(c=>(c.leads||[]).map(l=>l.platform)).filter(Boolean))];
   const sals=[...new Set(DB.clients.flatMap(c=>(c.leads||[]).map(l=>l.sales)).filter(Boolean))];
+  const camps=[...new Set(DB.clients.flatMap(c=>(c.leads||[]).map(l=>l.campaign)).filter(Boolean))].sort();
   const cpf=pf.value,csf=sf.value;
+  const fc=document.getElementById("crm-fc");const cfc=fc?fc.value:"";
   pf.innerHTML="<option value=''>全部</option>"+plats.map(p=>`<option${p===cpf?" selected":""}>${p}</option>`).join("");
   sf.innerHTML="<option value=''>全部</option>"+sals.map(s=>`<option${s===csf?" selected":""}>${s}</option>`).join("");
+  if(fc)fc.innerHTML="<option value=''>全部</option>"+camps.map(c=>`<option value="${c}"${c===cfc?" selected":""}>${c}</option>`).join("");
   const mth=document.getElementById("crm-fm").value;
   const fpv=pf.value,fsv=sf.value,ft=document.getElementById("crm-ft").value;
+  const fcv=fc?fc.value:"";
   const search=(document.getElementById("crm-search")?.value||"").trim().toLowerCase();
   const lf=document.getElementById("crm-lf")?.value||"";
   const lt=document.getElementById("crm-lt")?.value||"";
@@ -555,6 +560,7 @@ function renderCRM(){
     if(fsv&&!leads.some(l=>l.sales===fsv))return false;
     if(mth&&!leads.some(l=>gm(l.date)===mth))return false;
     if(ft&&!leads.some(l=>l.clientType===ft))return false;
+    if(fcv&&!leads.some(l=>l.campaign===fcv))return false;
     if(search){
       const n=(c.name||"").toLowerCase();
       const p=(c.phone||"");
@@ -606,7 +612,7 @@ function renderCRM(){
       </td></tr>`;
   }).join("");
 }
-function clearCRMFilters(){["crm-search","crm-lf","crm-lt","crm-cf","crm-ct"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});["crm-fp","crm-fs","crm-fm","crm-ft"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});renderCRM();}
+function clearCRMFilters(){["crm-search","crm-lf","crm-lt","crm-cf","crm-ct"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});["crm-fp","crm-fs","crm-fm","crm-ft","crm-fc"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});renderCRM();}
 function batchDelCRM(){const checked=document.querySelectorAll(".crm-cb:checked");if(!checked.length||!confirm(`確定刪除 ${checked.length} 筆？`))return;const ids=new Set([...checked].map(cb=>+cb.dataset.id));DB.clients=DB.clients.filter(c=>!ids.has(c.id));saveDB();renderCRM();}
 function delClient(id){if(confirm("確定刪除？")){DB.clients=DB.clients.filter(c=>c.id!==id);saveDB();renderCRM();}}
 
